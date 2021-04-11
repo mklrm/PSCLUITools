@@ -199,6 +199,7 @@ namespace PSCLUITools
                     width = this.GetWidth();
                     width = width - (this.Container.GetLeftEdgePosition() - x);
                     this.SetWidth(width);
+                    Console.WriteLine(this.GetWidth());
                     return;
                 }
             }
@@ -239,26 +240,21 @@ namespace PSCLUITools
                 {
                     this.Container.SetWidth(width);
                     this.width = width;
-                    return;
                 }
-
-                if (width > this.Container.GetWidth())
-                {
+                else if (width > this.Container.GetWidth())
                     width = this.Container.GetWidth();
-                    return;
-                }
-
-                if (this.GetLeftEdgePosition() > this.Container.GetRightEdgePosition())
+                else if (this.GetLeftEdgePosition() > this.Container.GetRightEdgePosition())
+                    // Left edge tried to pass container right edge
+                    width = 0;
+                else if (this.GetLeftEdgePosition() + width > this.Container.GetRightEdgePosition())
                 {
-                    this.width = 0;
-                    return;
-                }
-                
-                if (this.GetLeftEdgePosition() + width > this.Container.GetRightEdgePosition())
-                {
+                    // Right edge tried to pass Container right edge
                     this.SetRightEdgePosition(this.Container.GetRightEdgePosition());
                     return;
                 }
+                else if (this.GetLeftEdgePosition() + width < this.Container.GetLeftEdgePosition())
+                    // Right edge tried to pass Container left edge
+                    width = 0;
             }
 
             this.width = width;
@@ -277,26 +273,21 @@ namespace PSCLUITools
                 {
                     this.Container.SetHeight(height);
                     this.height = height;
-                    return;
                 }
-
-                if (height > this.Container.GetHeight())
-                {
+                else if (height > this.Container.GetHeight())
                     height = this.Container.GetHeight();
-                    return;
-                }
-
-                if (this.GetTopEdgePosition() > this.Container.GetBottomEdgePosition())
-                {
+                else if (this.GetTopEdgePosition() > this.Container.GetBottomEdgePosition())
+                    // Top edge tried to pass container bottom edge
                     this.height = 0;
-                    return;
-                }
-
-                if (this.GetTopEdgePosition() + height > this.Container.GetBottomEdgePosition())
+                else if (this.GetTopEdgePosition() + height > this.Container.GetBottomEdgePosition())
                 {
+                    // Bottom edge tried to pass Container bottom edge
                     this.SetBottomEdgePosition(this.Container.GetBottomEdgePosition());
                     return;
                 }
+                else if (this.GetTopEdgePosition() + height < this.Container.GetTopEdgePosition())
+                    // Bottom edge tried to pass container top edge
+                    height = 0;
             }
 
             this.height = height;
@@ -444,6 +435,8 @@ namespace PSCLUITools
 
         public void AddControl(Control control)
         {
+            control.Container = this;
+
             if (this.SetContainerToWidestControlWidth)
             {
                 if (this.GetWidth() < control.GetWidth())
@@ -472,7 +465,7 @@ namespace PSCLUITools
                 {
                     var lastControl = controls[controls.Count - 1];
                     var left = this.Position.X;
-                    var top = lastControl.Position.Y + lastControl.GetHeight();
+                    var top = lastControl.GetBottomEdgePosition();
                     control.SetHorizontalPosition(left);
                     control.SetVerticalPosition(top);
                 }
@@ -481,10 +474,14 @@ namespace PSCLUITools
                     throw new NotImplementedException();
                 }
             }
+
+            if (control.GetBottomEdgePosition() > this.GetBottomEdgePosition())
+            {
+                control.SetBottomEdgePosition(this.GetBottomEdgePosition());
+            }
             // TODO control.Container becomes inaccessible unless I make it public, this is not good.
             //      There's an explanation over yonder:
             //      https://stackoverflow.com/questions/567705/why-cant-i-access-c-sharp-protected-members-except-like-this
-            control.Container = this;
             controls.Add(control);
         }
 
@@ -674,40 +671,55 @@ namespace PSCLUITools
     {
         public List<Object> objects = new List<Object>();
 
+        // TODO Start adding methods for controlling the list of items
+
         public Menu(int left, int top, List<Object> objects)
         {
             this.SetHorizontalPosition(left);
             this.SetVerticalPosition(top);
-            this.objects = objects;
-        }
-        
-        public Menu(int left, int top, int width, int height, List<Object> objects)
-        {
-            this.SetHorizontalPosition(left);
-            this.SetVerticalPosition(top);
-            this.SetWidth(width);
-            this.SetHeight(height);
+            this.SetHeight(objects.Count);
             this.objects = objects;
         }
         
         public override List<string> ToTextRepresentation()
         {
             var text = new List<string>();
+            if (this.GetHeight() == 0)
+                return text;
+            var horizontalBorder = new string(this.BorderCharacter, this.GetWidth());
+            if ((this.BorderTop || this.BorderBottom) && this.GetHeight() == 1)
+            {
+                text.Add(horizontalBorder);
+                return text;
+            }
 
-            for (var i = 0; i < objects.Count; i++)
+            if (this.GetHeight() == 2 && (this.BorderTop && this.BorderBottom))
+            {
+                text.Add(horizontalBorder);
+                text.Add(horizontalBorder);
+                return text;
+            }
+            
+            var roomForItems = this.GetHeight();
+            if (this.BorderTop)
+                text.Add(horizontalBorder);
+                roomForItems--;
+            if (this.BorderBottom)
+                roomForItems--;
+
+            for (var i = 0; i < roomForItems; i++)
             {
                 var txt = objects[i].ToString();
                 var label = new Label(0, 0, txt);
-                
                 var width = this.GetWidth();
+
                 if (this.BorderRight)
                     width--;
+
                 if (this.BorderLeft)
                     width--;
-                label.SetWidth(width);
 
-                if (i == 0 && this.BorderTop)
-                    label.AddBorder("top");
+                label.SetWidth(width);
 
                 if (this.BorderRight)
                     label.AddBorder("right");
@@ -715,14 +727,14 @@ namespace PSCLUITools
                 if (this.BorderLeft)
                     label.AddBorder("left");
 
-                if (i == objects.Count - 1 && this.BorderBottom)
-                    label.AddBorder("bottom");
-
                 foreach (string lblText in label.ToTextRepresentation())
                 {
                     text.Add(lblText);
                 }
             }
+
+            if (this.BorderBottom)
+                text.Add(horizontalBorder);
 
             return text;
         }

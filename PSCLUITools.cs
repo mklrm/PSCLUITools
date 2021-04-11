@@ -35,23 +35,35 @@ namespace PSCLUITools
         {
             var buffer = new ConsoleBuffer();
 
-            var container = new Container(10, 5, 10, 10);
-            //cont.SetContainerToWidestControlWidth = false;
-            //outerContainer.AddControl(cont);
+            var container = new Container(20, 10, 10, 10);
+            container.SetContainerToWidestControlWidth = false;
+            container.SetControlsToContainerWidth = false;
             buffer.AddControl(container);
 
-            var lbl0 = new Label(0, 0, "qwertyuiopasdfghjklzxcvbnmqwertyuiop");
-            container.AddControl(lbl0);
-            //Console.WriteLine(cont.GetWidth());
-            //Console.WriteLine(cont.GetHeight());
-            lbl0.AddBorder("top");
-            lbl0.AddBorder("right");
-            lbl0.AddBorder("left");
+            //var lbl0 = new Label(0, 0, "qwertyuiopasdfghjklzxcvbnmqwertyuiop");
+            //lbl0.AddBorder("all");
+            //lbl0.SetHeight(3);
             
+            //var lbl1 = new Label(0, 0, "1233435654675775321424654356624");
+            //lbl1.AddBorder("all");
+            //lbl1.SetHeight(3);
+
+            //var lbl2 = new Label(0, 0, "zxczxvvcxbcvbnvbbvnvbxcv");
+            //lbl2.AddBorder("all");
+            //lbl2.SetHeight(6);
+
             var menu = new Menu(0, 0, InputObject);
-            container.AddControl(menu);
+            menu.SetWidth(10);
             menu.AddBorder("all");
 
+            //container.AddControl(lbl0);
+            //container.AddControl(lbl1);
+            //container.AddControl(lbl2);
+            container.AddControl(menu);
+
+            menu.SetHorizontalPosition(20);
+            menu.SetVerticalPosition(10);
+            
             buffer.UpdateAll();
             buffer.Write();
         }
