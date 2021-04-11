@@ -165,7 +165,8 @@ namespace PSCLUITools
         protected bool BorderBottom { get; set; } = false;
         protected bool BorderLeft { get; set; } = false;
         public char BorderCharacter { get; set; } = '#';
-        public char FillCharacter { get; set; } = '+';
+        public char FillCharacter { get; set; } = '.';
+        public char SelectCharacter { get; set; } = '>';
 
         // Returns a text representation of the control, including borders and whatever else stylings
         public abstract List<string> ToTextRepresentation();
@@ -307,6 +308,7 @@ namespace PSCLUITools
                     {
                         this.SetHeight(this.GetHeight() + 1);
                         this.BorderTop = true;
+                        // TODO Should also maybe move position up 1 row?
                     }
                     break;
                 case "right":
@@ -328,6 +330,7 @@ namespace PSCLUITools
                     {
                         this.SetWidth(this.GetWidth() + 1);
                         this.BorderLeft = true;
+                        // TODO Should also maybe move position left 1 column?
                     }
                     break;
                 case "all":
@@ -669,7 +672,9 @@ namespace PSCLUITools
 
     class Menu : Control
     {
-        public List<Object> objects = new List<Object>();
+        public List<Object> Objects { get; set; } = new List<Object>();
+        public int TopDisplayedObjectIndex { get; set; } = 0; // Index of the object at the top of the list
+        public List<Object> SelectedObjects { get; set; } = new List<Object>(); // Selected objects
 
         // TODO Start adding methods for controlling the list of items
 
@@ -678,9 +683,37 @@ namespace PSCLUITools
             this.SetHorizontalPosition(left);
             this.SetVerticalPosition(top);
             this.SetHeight(objects.Count);
-            this.objects = objects;
+            this.Objects = objects;
         }
-        
+
+        private int GetNumberOfAvailebleRowsForItems()
+        {
+            // Returns the number of rows that can fit items on the menu
+            var rows = this.GetHeight();
+            if (this.BorderTop)
+                rows--;
+            if (this.BorderBottom)
+                rows--;
+            if (rows < 0)
+                rows = 0;
+            return rows;
+        }
+
+        public List<Object> ReadKey()
+        {
+            while (true)
+            {
+                var key = Console.ReadKey(true).Key; // true hides key strokes
+                switch (key)
+                {
+                    case ConsoleKey.Enter:
+                        return this.SelectedObjects;
+                    case ConsoleKey.Escape:
+                        return new List<Object>();
+                }
+            }
+        }
+
         public override List<string> ToTextRepresentation()
         {
             var text = new List<string>();
@@ -692,6 +725,8 @@ namespace PSCLUITools
                 text.Add(horizontalBorder);
                 return text;
             }
+            var rowsAvailableForItems = this.GetNumberOfAvailebleRowsForItems();
+            var currentItemIndex = this.TopDisplayedObjectIndex;
 
             if (this.GetHeight() == 2 && (this.BorderTop && this.BorderBottom))
             {
@@ -700,16 +735,20 @@ namespace PSCLUITools
                 return text;
             }
             
-            var roomForItems = this.GetHeight();
             if (this.BorderTop)
                 text.Add(horizontalBorder);
-                roomForItems--;
-            if (this.BorderBottom)
-                roomForItems--;
 
-            for (var i = 0; i < roomForItems; i++)
+            for (var i = 0; i < rowsAvailableForItems; i++)
             {
-                var txt = objects[i].ToString();
+                if (currentItemIndex > Objects.Count - 1)
+                    currentItemIndex = 0;
+
+                var item = this.Objects[currentItemIndex];
+                var txt = item.ToString();
+
+                if (this.SelectedObjects.Contains(item))
+                    txt = "" + this.SelectCharacter + this.FillCharacter + txt;
+
                 var label = new Label(0, 0, txt);
                 var width = this.GetWidth();
 
@@ -725,12 +764,16 @@ namespace PSCLUITools
                     label.AddBorder("right");
 
                 if (this.BorderLeft)
+                {
                     label.AddBorder("left");
-
+                }
+                
                 foreach (string lblText in label.ToTextRepresentation())
                 {
                     text.Add(lblText);
                 }
+
+                currentItemIndex++;
             }
 
             if (this.BorderBottom)
