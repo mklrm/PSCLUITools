@@ -5,6 +5,8 @@ using System.Collections.Generic;
 
 namespace PSCLUITools
 {
+    //public delegate void MyEventDelegate(); // TODO Remove
+
     abstract class Buffer : PSCmdlet
     {
         internal static int left = Console.WindowLeft;
@@ -31,6 +33,7 @@ namespace PSCLUITools
 
         public void AddControl(Control control)
         {
+            control.Buffer = this;
             this.container.controls.Add(control);
         }
 
@@ -42,6 +45,7 @@ namespace PSCLUITools
 
     class ConsoleBuffer : Buffer
     {
+        //event MyEventDelegate MyEvent; // TODO Remove
         // Used where PSHost is not available (such as Linux)
         // Heavily loans from: http://cgp.wikidot.com/consle-screen-buffer
 
@@ -49,6 +53,7 @@ namespace PSCLUITools
 
         public ConsoleBuffer()
         {
+            //this.MyEvent += new MyEventDelegate(this.UpdateAllAndWrite); // TODO Remove
             this.container.SetContainerToWidestControlWidth = false;
             this.container.SetControlsToContainerWidth = false;
             this.container.AutoPositionControls = false;
@@ -121,6 +126,12 @@ namespace PSCLUITools
             screenBufferArray = new char[width, height];
         }
 
+        //public void UpdateAllAndWrite()
+        //{
+            //this.UpdateAll();
+            //this.Write();
+        //}
+
         public override void Clear()
         {
             throw new NotImplementedException();
@@ -166,7 +177,20 @@ namespace PSCLUITools
         protected bool BorderLeft { get; set; } = false;
         public char BorderCharacter { get; set; } = '#';
         public char FillCharacter { get; set; } = '.';
-        public char SelectCharacter { get; set; } = '>';
+        public char SelectCharacter { get; set; } = '+';
+        public char ActiveCharacter { get; set; } = '>';
+        public char SelectedAndActiveCharacter { get; set; } = '*';
+        public const string KeyUp0  = "UpArrow";
+        public const string KeyUp1  = "K";
+        public const string KeyRight0  = "RightArrow";
+        public const string KeyRight1  = "L";
+        public const string KeyDown0  = "DownArrow";
+        public const string KeyDown1  = "J";
+        public const string KeyLeft0  = "LeftArrow";
+        public const string KeyLeft1  = "H";
+        public const string KeyConfirm = "Enter";
+        public const string KeySelect = "Spacebar";
+        public const string KeyCancel = "Escape";
 
         // Returns a text representation of the control, including borders and whatever else stylings
         public abstract List<string> ToTextRepresentation();
@@ -180,6 +204,7 @@ namespace PSCLUITools
         // A Container that contains this Control
         public Container Container { get; set; }
 
+        public Buffer Buffer { get; set; }
         // TODO Respect boundaries of other Controls within the Container
 
         public void SetHorizontalPosition(int x)
@@ -342,6 +367,48 @@ namespace PSCLUITools
             }
         }
 
+        public void RemoveBorder(string edge)
+        {
+            switch (edge)
+            {
+                case "top":
+                    if (this.BorderTop)
+                    {
+                        this.SetHeight(this.GetHeight() - 1);
+                        this.BorderTop = false;
+                        // TODO Should also maybe move position down 1 row?
+                    }
+                    break;
+                case "right":
+                    if (this.BorderRight)
+                    {
+                        this.SetWidth(this.GetWidth() - 1);
+                        this.BorderRight = false;
+                    }
+                    break;
+                case "bottom":
+                    if (this.BorderBottom)
+                    {
+                        this.SetHeight(this.GetHeight() - 1);
+                        this.BorderBottom = false;
+                    }
+                    break;
+                case "left":
+                    if (this.BorderLeft)
+                    {
+                        this.SetWidth(this.GetWidth() - 1);
+                        this.BorderLeft = false;
+                        // TODO Should also maybe move position right 1 column?
+                    }
+                    break;
+                case "all":
+                    this.RemoveBorder("top");
+                    this.RemoveBorder("right");
+                    this.RemoveBorder("bottom");
+                    this.RemoveBorder("left");
+                    break;
+            }
+        }
         public int GetLeftEdgePosition()
         {
             return this.Position.X;
@@ -439,6 +506,7 @@ namespace PSCLUITools
         public void AddControl(Control control)
         {
             control.Container = this;
+            control.Buffer = this.Buffer;
 
             if (this.SetContainerToWidestControlWidth)
             {
@@ -675,6 +743,7 @@ namespace PSCLUITools
         public List<Object> Objects { get; set; } = new List<Object>();
         public int TopDisplayedObjectIndex { get; set; } = 0; // Index of the object at the top of the list
         public List<Object> SelectedObjects { get; set; } = new List<Object>(); // Selected objects
+        public Object ActiveObject { get; set; } = 0; // Highlighted object
 
         // TODO Start adding methods for controlling the list of items
 
@@ -684,6 +753,7 @@ namespace PSCLUITools
             this.SetVerticalPosition(top);
             this.SetHeight(objects.Count);
             this.Objects = objects;
+            this.ActiveObject = objects[0];
         }
 
         private int GetNumberOfAvailebleRowsForItems()
@@ -704,14 +774,55 @@ namespace PSCLUITools
             while (true)
             {
                 var key = Console.ReadKey(true).Key; // true hides key strokes
-                switch (key)
+                switch (key.ToString())
                 {
-                    case ConsoleKey.Enter:
+                    case KeyUp0:
+                    case KeyUp1:
+                        this.SetPreviousItemActive();
+                        break;
+                    case KeyDown0:
+                    case KeyDown1:
+                        this.SetNextItemActive();
+                        break;
+                    case KeySelect:
+                        if (this.SelectedObjects.Contains(this.ActiveObject))
+                            this.SelectedObjects.Remove(this.ActiveObject);
+                        else
+                            this.SelectedObjects.Add(this.ActiveObject);
+                        // TODO If this.Mode == "Default" or something just return
+                        break;
+                    case KeyConfirm:
                         return this.SelectedObjects;
-                    case ConsoleKey.Escape:
+                    case KeyCancel:
                         return new List<Object>();
                 }
             }
+        }
+
+        public void SetNextItemActive()
+        {
+            var activeObjectIndex = this.Objects.IndexOf(this.ActiveObject);
+
+            if (activeObjectIndex + 1 < this.Objects.Count)
+                this.ActiveObject = this.Objects[activeObjectIndex + 1];
+            else
+                this.ActiveObject = this.Objects[0];
+
+            this.Buffer.UpdateAll();
+            this.Buffer.Write();
+        }
+
+        public void SetPreviousItemActive()
+        {
+            var activeObjectIndex = this.Objects.IndexOf(this.ActiveObject);
+
+            if (activeObjectIndex - 1 > -1)
+                this.ActiveObject = this.Objects[activeObjectIndex - 1];
+            else
+                this.ActiveObject = this.Objects[this.Objects.Count - 1];
+
+            this.Buffer.UpdateAll();
+            this.Buffer.Write();
         }
 
         public override List<string> ToTextRepresentation()
@@ -746,7 +857,11 @@ namespace PSCLUITools
                 var item = this.Objects[currentItemIndex];
                 var txt = item.ToString();
 
-                if (this.SelectedObjects.Contains(item))
+                if (this.ActiveObject == item && this.SelectedObjects.Contains(item))
+                    txt = "" + this.ActiveCharacter + this.FillCharacter + txt;
+                else if (this.ActiveObject == item)
+                    txt = "" + this.ActiveCharacter + this.FillCharacter + txt;
+                else if (this.SelectedObjects.Contains(item))
                     txt = "" + this.SelectCharacter + this.FillCharacter + txt;
 
                 var label = new Label(0, 0, txt);
