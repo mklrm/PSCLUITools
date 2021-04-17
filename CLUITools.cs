@@ -175,8 +175,16 @@ namespace PSCLUITools
         protected bool BorderRight { get; set; } = false;
         protected bool BorderBottom { get; set; } = false;
         protected bool BorderLeft { get; set; } = false;
+        protected bool PaddingTop { get; set; } = false;
+        protected bool PaddingRight { get; set; } = false;
+        protected bool PaddingBottom { get; set; } = false;
+        protected bool PaddingLeft { get; set; } = false;
         public char BorderCharacter { get; set; } = '#';
-        public char FillCharacter { get; set; } = '.';
+        public char PaddingCharacterTop { get; set; } = ' ';
+        public char PaddingCharacterRight { get; set; } = ' ';
+        public char PaddingCharacterBottom { get; set; } = ' ';
+        public char PaddingCharacterLeft { get; set; } = ' ';
+        public char FillCharacter { get; set; } = ' ';
         public char SelectCharacter { get; set; } = '+';
         public char ActiveCharacter { get; set; } = '>';
         public char SelectedAndActiveCharacter { get; set; } = '*';
@@ -409,6 +417,81 @@ namespace PSCLUITools
                     break;
             }
         }
+
+        public void AddPadding(string edge)
+        {
+            switch (edge)
+            {
+                case "top":
+                    if (!this.PaddingTop)
+                    {
+                        this.PaddingTop = true;
+                    }
+                    break;
+                case "right":
+                    if (!this.PaddingRight)
+                    {
+                        this.PaddingRight = true;
+                    }
+                    break;
+                case "bottom":
+                    if (!this.PaddingBottom)
+                    {
+                        this.PaddingBottom = true;
+                    }
+                    break;
+                case "left":
+                    if (!this.PaddingLeft)
+                    {
+                        this.PaddingLeft = true;
+                    }
+                    break;
+                case "all":
+                    this.AddPadding("top");
+                    this.AddPadding("right");
+                    this.AddPadding("bottom");
+                    this.AddPadding("left");
+                    break;
+            }
+        }
+
+        public void RemovePadding(string edge)
+        {
+            switch (edge)
+            {
+                case "top":
+                    if (this.PaddingTop)
+                    {
+                        this.PaddingTop = false;
+                    }
+                    break;
+                case "right":
+                    if (this.PaddingRight)
+                    {
+                        this.PaddingRight = false;
+                    }
+                    break;
+                case "bottom":
+                    if (this.PaddingBottom)
+                    {
+                        this.PaddingBottom = false;
+                    }
+                    break;
+                case "left":
+                    if (this.PaddingLeft)
+                    {
+                        this.PaddingLeft = false;
+                    }
+                    break;
+                case "all":
+                    this.RemovePadding("top");
+                    this.RemovePadding("right");
+                    this.RemovePadding("bottom");
+                    this.RemovePadding("left");
+                    break;
+            }
+        }
+
         public int GetLeftEdgePosition()
         {
             return this.Position.X;
@@ -550,6 +633,13 @@ namespace PSCLUITools
             {
                 control.SetBottomEdgePosition(this.GetBottomEdgePosition());
             }
+
+            if (control is Menu)
+            {
+                ((Menu) control).SetMiddleMenuItemActive(); // TODO Find out how to cast as Menu at 
+                                                            //      the beginning of the method
+                                                            // TODO Move Menu.Objects[0] to the same spot
+            }
             // TODO control.Container becomes inaccessible unless I make it public, this is not good.
             //      There's an explanation over yonder:
             //      https://stackoverflow.com/questions/567705/why-cant-i-access-c-sharp-protected-members-except-like-this
@@ -632,6 +722,12 @@ namespace PSCLUITools
             if (this.BorderLeft)
                 textHorizontalSpace--;
             
+            if (this.PaddingRight)
+                textHorizontalSpace--;
+
+            if (this.PaddingLeft)
+                textHorizontalSpace--;
+
             if (textHorizontalSpace < 0)
                 textHorizontalSpace = 0;
             
@@ -671,6 +767,8 @@ namespace PSCLUITools
                 }
             }
 
+            // TODO Implement PaddingTop
+
             if (txt.Length > textHorizontalSpace)
                 txt = txt.Substring(0, textHorizontalSpace);
             else
@@ -688,7 +786,13 @@ namespace PSCLUITools
             }
             else
             {
-                if (this.BorderRight)
+                // TODO Implement left and right padding without left and right borders
+                if (this.BorderRight && this.PaddingRight)
+                {
+                    txt = txt + this.PaddingCharacterRight + this.BorderCharacter;
+                    emptyLine = emptyLine + this.PaddingCharacterRight + this.BorderCharacter;
+                }
+                else if (this.BorderRight)
                 {
                     txt = txt + this.BorderCharacter;
                     emptyLine = emptyLine + this.BorderCharacter;
@@ -696,7 +800,12 @@ namespace PSCLUITools
                 else
                     emptyLine = emptyLine + this.FillCharacter;
                 
-                if (this.BorderLeft)
+                if (this.BorderLeft && this.PaddingLeft)
+                {
+                    txt = "" + this.BorderCharacter + this.PaddingCharacterLeft + txt;
+                    emptyLine = "" + this.BorderCharacter + this.PaddingCharacterLeft + emptyLine;
+                }
+                else if (this.BorderLeft)
                 {
                     txt = this.BorderCharacter + txt;
                     emptyLine = this.BorderCharacter + emptyLine;
@@ -726,6 +835,8 @@ namespace PSCLUITools
                 }
             }
 
+            // TODO Implement PaddingBottom
+
             if (this.BorderBottom)
                 text.Add(horizontalBorder);
 
@@ -745,8 +856,6 @@ namespace PSCLUITools
         public List<Object> SelectedObjects { get; set; } = new List<Object>(); // Selected objects
         public Object ActiveObject { get; set; } = 0; // Highlighted object
 
-        // TODO Start adding methods for controlling the list of items
-
         public Menu(int left, int top, List<Object> objects)
         {
             this.SetHorizontalPosition(left);
@@ -762,10 +871,19 @@ namespace PSCLUITools
             var rows = this.GetHeight();
             if (this.BorderTop)
                 rows--;
+
             if (this.BorderBottom)
                 rows--;
+
+            if (this.PaddingTop)
+                rows--;
+
+            if (this.PaddingBottom)
+                rows--;
+
             if (rows < 0)
                 rows = 0;
+
             return rows;
         }
 
@@ -790,6 +908,8 @@ namespace PSCLUITools
                         else
                             this.SelectedObjects.Add(this.ActiveObject);
                         // TODO If this.Mode == "Default" or something just return
+                        this.Buffer.UpdateAll();
+                        this.Buffer.Write();
                         break;
                     case KeyConfirm:
                         return this.SelectedObjects;
@@ -803,10 +923,29 @@ namespace PSCLUITools
         {
             var activeObjectIndex = this.Objects.IndexOf(this.ActiveObject);
 
-            if (activeObjectIndex + 1 < this.Objects.Count)
-                this.ActiveObject = this.Objects[activeObjectIndex + 1];
+            if (this.Objects.Count > this.GetNumberOfAvailebleRowsForItems())
+            {
+                if (activeObjectIndex + 1 < this.Objects.Count)
+                {
+                    this.ActiveObject = this.Objects[activeObjectIndex + 1];
+                    this.TopDisplayedObjectIndex++;
+                }
+                else
+                {
+                    this.ActiveObject = this.Objects[0];
+                    this.TopDisplayedObjectIndex++;
+                }
+
+                if (this.TopDisplayedObjectIndex >= this.Objects.Count)
+                    this.TopDisplayedObjectIndex = 0;
+            }
             else
-                this.ActiveObject = this.Objects[0];
+            {
+                if (activeObjectIndex + 1 < this.Objects.Count)
+                    this.ActiveObject = this.Objects[activeObjectIndex + 1];
+                else
+                    this.ActiveObject = this.Objects[0];
+            }
 
             this.Buffer.UpdateAll();
             this.Buffer.Write();
@@ -816,13 +955,70 @@ namespace PSCLUITools
         {
             var activeObjectIndex = this.Objects.IndexOf(this.ActiveObject);
 
-            if (activeObjectIndex - 1 > -1)
-                this.ActiveObject = this.Objects[activeObjectIndex - 1];
-            else
-                this.ActiveObject = this.Objects[this.Objects.Count - 1];
+            if (this.Objects.Count > this.GetNumberOfAvailebleRowsForItems())
+            {
+                if (activeObjectIndex - 1 >= 0)
+                {
+                    this.ActiveObject = this.Objects[activeObjectIndex - 1];
+                    this.TopDisplayedObjectIndex--;
+                }
+                else
+                {
+                    this.ActiveObject = this.Objects[this.Objects.Count - 1];
+                    this.TopDisplayedObjectIndex--;
+                }
 
+                if (this.TopDisplayedObjectIndex < 0)
+                    this.TopDisplayedObjectIndex = this.Objects.Count - 1;
+            }
+            else
+            {
+                if (activeObjectIndex - 1 >= 0)
+                    this.ActiveObject = this.Objects[activeObjectIndex - 1];
+                else
+                    this.ActiveObject = this.Objects[this.Objects.Count - 1];
+            }
+            
             this.Buffer.UpdateAll();
             this.Buffer.Write();
+        }
+
+        public void SetMiddleMenuItemActive()
+        {
+            var middleRowNumber = this.GetNumberOfAvailebleRowsForItems() / 2;
+            if (middleRowNumber >= 0 && middleRowNumber <= this.GetBottomEdgePosition()
+                && (middleRowNumber <= this.Objects.Count - 1))
+                    this.ActiveObject = this.Objects[middleRowNumber];
+        }
+
+        public new void SetHeight(int height)
+        {
+            base.SetHeight(height);
+            SetMiddleMenuItemActive();
+        }
+
+        public new void AddBorder(string edge)
+        {
+            base.AddBorder(edge);
+            SetMiddleMenuItemActive();
+        }
+
+        public new void RemoveBorder(string edge)
+        {
+            base.RemoveBorder(edge);
+            SetMiddleMenuItemActive();
+        }
+
+        public new void SetTopEdgePosition(int y)
+        {
+            base.SetTopEdgePosition(y);
+            SetMiddleMenuItemActive();
+        }
+
+        public new void SetBottomEdgePosition(int y)
+        {
+            base.SetBottomEdgePosition(y);
+            SetMiddleMenuItemActive();
         }
 
         public override List<string> ToTextRepresentation()
@@ -848,7 +1044,22 @@ namespace PSCLUITools
             
             if (this.BorderTop)
                 text.Add(horizontalBorder);
+            
+            var horizontalPadding = new string(this.PaddingCharacterTop, this.GetWidth() - 2);
 
+            if (this.BorderLeft)
+                horizontalPadding = this.BorderCharacter + horizontalPadding;
+            else
+                horizontalPadding = this.PaddingCharacterLeft + horizontalPadding;
+            
+            if (this.BorderRight)
+                horizontalPadding = horizontalPadding + this.BorderCharacter;
+            else
+                horizontalPadding = horizontalPadding + this.PaddingCharacterRight;
+            
+            if (this.PaddingTop)
+                text.Add(horizontalPadding);
+            
             for (var i = 0; i < rowsAvailableForItems; i++)
             {
                 if (currentItemIndex > Objects.Count - 1)
@@ -857,15 +1068,28 @@ namespace PSCLUITools
                 var item = this.Objects[currentItemIndex];
                 var txt = item.ToString();
 
-                if (this.ActiveObject == item && this.SelectedObjects.Contains(item))
-                    txt = "" + this.ActiveCharacter + this.FillCharacter + txt;
-                else if (this.ActiveObject == item)
-                    txt = "" + this.ActiveCharacter + this.FillCharacter + txt;
-                else if (this.SelectedObjects.Contains(item))
-                    txt = "" + this.SelectCharacter + this.FillCharacter + txt;
+                if (!this.PaddingLeft)
+                {
+                    if (this.ActiveObject == item && this.SelectedObjects.Contains(item))
+                        txt = "" + this.SelectedAndActiveCharacter + this.FillCharacter + txt;
+                    else if (this.ActiveObject == item)
+                        txt = "" + this.ActiveCharacter + this.FillCharacter + txt;
+                    else if (this.SelectedObjects.Contains(item))
+                        txt = "" + this.SelectCharacter + this.FillCharacter + txt;
+                }
 
                 var label = new Label(0, 0, txt);
                 var width = this.GetWidth();
+
+                if (this.PaddingLeft)
+                {
+                    if (this.ActiveObject == item && this.SelectedObjects.Contains(item))
+                        label.PaddingCharacterLeft = this.SelectedAndActiveCharacter;
+                    else if (this.ActiveObject == item)
+                        label.PaddingCharacterLeft = this.ActiveCharacter;
+                    else if (this.SelectedObjects.Contains(item))
+                        label.PaddingCharacterLeft = this.SelectCharacter;
+                }
 
                 if (this.BorderRight)
                     width--;
@@ -879,10 +1103,14 @@ namespace PSCLUITools
                     label.AddBorder("right");
 
                 if (this.BorderLeft)
-                {
                     label.AddBorder("left");
-                }
                 
+                if (this.PaddingRight)
+                    label.AddPadding("right");
+
+                if (this.PaddingLeft)
+                    label.AddPadding("left");
+
                 foreach (string lblText in label.ToTextRepresentation())
                 {
                     text.Add(lblText);
@@ -890,6 +1118,9 @@ namespace PSCLUITools
 
                 currentItemIndex++;
             }
+
+            if (this.PaddingBottom)
+                text.Add(horizontalPadding);
 
             if (this.BorderBottom)
                 text.Add(horizontalBorder);

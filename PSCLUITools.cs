@@ -47,19 +47,18 @@ namespace PSCLUITools
         {
             var buffer = new ConsoleBuffer();
             var container = new Container(10, 10, 40, 40);
-            //container.SetContainerToWidestControlWidth = false;
-            //container.SetControlsToContainerWidth = false;
             buffer.AddControl(container);
 
             var label = new Label(0, 0, "Listing");
             label.AddBorder("all");
             label.RemoveBorder("bottom");
+            label.AddPadding("left");
+            label.AddPadding("right");
             var menu = new Menu(0, 0, InputObject);
             menu.SetWidth(40);
             menu.AddBorder("all");
+            menu.AddPadding("all");
 
-            //menu.TopDisplayedObjectIndex = 1;
-            //menu.SelectedObjects.Add(InputObject[0]);
 
             container.AddControl(label);
             container.AddControl(menu);
