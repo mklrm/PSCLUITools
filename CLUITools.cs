@@ -2,11 +2,10 @@ using System;
 using System.Management.Automation;
 using System.Management.Automation.Host;
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
 
 namespace PSCLUITools
 {
-    //public delegate void MyEventDelegate(); // TODO Remove
-
     abstract class Buffer : PSCmdlet
     {
         internal static int left = Console.WindowLeft;
@@ -45,7 +44,6 @@ namespace PSCLUITools
 
     class ConsoleBuffer : Buffer
     {
-        //event MyEventDelegate MyEvent; // TODO Remove
         // Used where PSHost is not available (such as Linux)
         // Heavily loans from: http://cgp.wikidot.com/consle-screen-buffer
 
@@ -53,7 +51,6 @@ namespace PSCLUITools
 
         public ConsoleBuffer()
         {
-            //this.MyEvent += new MyEventDelegate(this.UpdateAllAndWrite); // TODO Remove
             this.container.SetContainerToWidestControlWidth = false;
             this.container.SetControlsToContainerWidth = false;
             this.container.AutoPositionControls = false;
@@ -126,12 +123,6 @@ namespace PSCLUITools
             screenBufferArray = new char[width, height];
         }
 
-        //public void UpdateAllAndWrite()
-        //{
-            //this.UpdateAll();
-            //this.Write();
-        //}
-
         public override void Clear()
         {
             throw new NotImplementedException();
@@ -194,11 +185,14 @@ namespace PSCLUITools
         public const string KeyRight1  = "L";
         public const string KeyDown0  = "DownArrow";
         public const string KeyDown1  = "J";
+        public const string KeyPageUp  = "PageUp";
+        public const string KeyPageDown  = "PageDown";
         public const string KeyLeft0  = "LeftArrow";
         public const string KeyLeft1  = "H";
         public const string KeyConfirm = "Enter";
         public const string KeySelect = "Spacebar";
         public const string KeyCancel = "Escape";
+        public const string KeyFind = "Oem2";
 
         // Returns a text representation of the control, including borders and whatever else stylings
         public abstract List<string> ToTextRepresentation();
@@ -638,7 +632,6 @@ namespace PSCLUITools
             {
                 ((Menu) control).SetMiddleMenuItemActive(); // TODO Find out how to cast as Menu at 
                                                             //      the beginning of the method
-                                                            // TODO Move Menu.Objects[0] to the same spot
             }
             // TODO control.Container becomes inaccessible unless I make it public, this is not good.
             //      There's an explanation over yonder:
@@ -707,6 +700,7 @@ namespace PSCLUITools
 
         public override List<string> ToTextRepresentation()
         {
+            // TODO Implement padding top and bottom
             var text = new List<string>();
             var txt = this.Text;
             var horizontalBorder = new string(this.BorderCharacter, this.GetWidth());
@@ -766,8 +760,6 @@ namespace PSCLUITools
                     return text;
                 }
             }
-
-            // TODO Implement PaddingTop
 
             if (txt.Length > textHorizontalSpace)
                 txt = txt.Substring(0, textHorizontalSpace);
@@ -835,8 +827,6 @@ namespace PSCLUITools
                 }
             }
 
-            // TODO Implement PaddingBottom
-
             if (this.BorderBottom)
                 text.Add(horizontalBorder);
 
@@ -897,10 +887,47 @@ namespace PSCLUITools
                     case KeyUp0:
                     case KeyUp1:
                         this.SetPreviousItemActive();
+                        this.Buffer.UpdateAll();
+                        this.Buffer.Write();
                         break;
                     case KeyDown0:
                     case KeyDown1:
                         this.SetNextItemActive();
+                        this.Buffer.UpdateAll();
+                        this.Buffer.Write();
+                        break;
+                    case KeyPageUp:
+                        SetPreviousPage();
+                        this.Buffer.UpdateAll();
+                        this.Buffer.Write();
+                        break;
+                    case KeyPageDown:
+                        SetNextPage();
+                        this.Buffer.UpdateAll();
+                        this.Buffer.Write();
+                        break;
+                    case KeyFind:
+                        // TODO add a next button
+                        Console.SetCursorPosition(0,0);
+                        Console.Write("Find: ");
+                        var searchTerm = "";
+                        ConsoleKeyInfo searchKey = Console.ReadKey(true);
+                        while (searchKey.Key != ConsoleKey.Enter)
+                        {
+                            searchTerm += searchKey.KeyChar;
+                            Console.Write(searchKey.KeyChar);
+                            searchKey = Console.ReadKey(true);
+                        }
+                        var item = this.FindItem(searchTerm);
+                        if (item != null)
+                        {
+                            this.ActiveObject = item;
+                        }
+                        // TODO Move this.ActiveObject to the middle of the menu (if number of items 
+                        //      is greater than height of the menu)
+                        this.MoveActiveObjectToMiddle();
+                        this.Buffer.UpdateAll();
+                        this.Buffer.Write();
                         break;
                     case KeySelect:
                         if (this.SelectedObjects.Contains(this.ActiveObject))
@@ -946,9 +973,6 @@ namespace PSCLUITools
                 else
                     this.ActiveObject = this.Objects[0];
             }
-
-            this.Buffer.UpdateAll();
-            this.Buffer.Write();
         }
 
         public void SetPreviousItemActive()
@@ -978,9 +1002,34 @@ namespace PSCLUITools
                 else
                     this.ActiveObject = this.Objects[this.Objects.Count - 1];
             }
-            
-            this.Buffer.UpdateAll();
-            this.Buffer.Write();
+        }
+
+        public Object FindItem(string searchTerm)
+        {
+            searchTerm = searchTerm.ToLower();
+            Regex regex = new Regex(searchTerm);
+            var index = this.Objects.IndexOf(this.ActiveObject);
+            var firstIndex = index;
+            while (true)
+            {
+                index++;
+                if (index > this.Objects.Count - 1)
+                {
+                    index = 0;
+                }
+
+                if (index == firstIndex)
+                {
+                    return null;
+                }
+
+                var control = this.Objects[index];
+                Match match = regex.Match(control.ToString().ToLower());
+                if (match.Success)
+                {
+                    return control;
+                }
+            }
         }
 
         public void SetMiddleMenuItemActive()
@@ -988,7 +1037,44 @@ namespace PSCLUITools
             var middleRowNumber = this.GetNumberOfAvailebleRowsForItems() / 2;
             if (middleRowNumber >= 0 && middleRowNumber <= this.GetBottomEdgePosition()
                 && (middleRowNumber <= this.Objects.Count - 1))
-                    this.ActiveObject = this.Objects[middleRowNumber];
+                this.TopDisplayedObjectIndex = this.Objects.Count - middleRowNumber;
+        }
+
+        public void SetNextPage()
+        {
+            var rows = this.GetNumberOfAvailebleRowsForItems();
+            if (this.Objects.Count > rows)
+            {
+                rows = rows / 2;
+                for (var i = 1; i <= rows; i++)
+                {
+                    SetNextItemActive();
+                }
+            }
+        }
+
+        public void MoveActiveObjectToMiddle()
+        {
+            var newTopObjectIndex = this.Objects.IndexOf(this.ActiveObject);
+            newTopObjectIndex = newTopObjectIndex - (GetNumberOfAvailebleRowsForItems() / 2);
+            if (newTopObjectIndex < 0)
+            {
+                newTopObjectIndex = this.Objects.Count - 1 - Math.Abs(newTopObjectIndex);
+            }
+            this.TopDisplayedObjectIndex = newTopObjectIndex;
+        }
+
+        public void SetPreviousPage()
+        {
+            var rows = this.GetNumberOfAvailebleRowsForItems();
+            if (this.Objects.Count > rows)
+            {
+                rows = rows / 2 + 1;
+                for (var i = 1; i <= rows; i++)
+                {
+                    SetPreviousItemActive();
+                }
+            }
         }
 
         public new void SetHeight(int height)

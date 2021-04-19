@@ -59,7 +59,6 @@ namespace PSCLUITools
             menu.AddBorder("all");
             menu.AddPadding("all");
 
-
             container.AddControl(label);
             container.AddControl(menu);
 
