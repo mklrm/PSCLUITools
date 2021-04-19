@@ -193,6 +193,7 @@ namespace PSCLUITools
         public const string KeySelect = "Spacebar";
         public const string KeyCancel = "Escape";
         public const string KeyFind = "Oem2";
+        public const string KeyFindNext = "N";
 
         // Returns a text representation of the control, including borders and whatever else stylings
         public abstract List<string> ToTextRepresentation();
@@ -879,6 +880,8 @@ namespace PSCLUITools
 
         public List<Object> ReadKey()
         {
+            var searchTerm = "";
+            var findItem = this.ActiveObject;
             while (true)
             {
                 var key = Console.ReadKey(true).Key; // true hides key strokes
@@ -907,24 +910,31 @@ namespace PSCLUITools
                         this.Buffer.Write();
                         break;
                     case KeyFind:
-                        // TODO add a next button
                         Console.SetCursorPosition(0,0);
                         Console.Write("Find: ");
-                        var searchTerm = "";
                         ConsoleKeyInfo searchKey = Console.ReadKey(true);
+                        searchTerm = "";
                         while (searchKey.Key != ConsoleKey.Enter)
                         {
                             searchTerm += searchKey.KeyChar;
                             Console.Write(searchKey.KeyChar);
                             searchKey = Console.ReadKey(true);
                         }
-                        var item = this.FindItem(searchTerm);
-                        if (item != null)
+                        findItem = this.FindItem(searchTerm);
+                        if (findItem != null)
                         {
-                            this.ActiveObject = item;
+                            this.ActiveObject = findItem;
                         }
-                        // TODO Move this.ActiveObject to the middle of the menu (if number of items 
-                        //      is greater than height of the menu)
+                        this.MoveActiveObjectToMiddle();
+                        this.Buffer.UpdateAll();
+                        this.Buffer.Write();
+                        break;
+                    case KeyFindNext:
+                        findItem = this.FindItem(searchTerm);
+                        if (findItem != null)
+                        {
+                            this.ActiveObject = findItem;
+                        }
                         this.MoveActiveObjectToMiddle();
                         this.Buffer.UpdateAll();
                         this.Buffer.Write();
