@@ -30,23 +30,24 @@ namespace PSCLUITools
         [ValidateSet("Cat", "Dog", "Horse")]
         public string FavoritePet { get; set; } = "Dog";
         */
+        public List<Object> PipelineInputList = new List<Object>();
         // This method gets called once for each cmdlet in the pipeline when the pipeline starts executing
-        protected override void BeginProcessing()
-        {
-            // TODO Nothing I suppose
-        }
+        //protected override void BeginProcessing()
+        //{
+        //}
 
-        // This method will be called for each input received from the pipeline to this cmdlet; if no input is received, this method is not called
         protected override void ProcessRecord()
         {
-            // TODO Collect InputObjects from the pipeline and feed them to the menu class in EndProcessing
+            PipelineInputList.Add(InputObject[0]);
         }
 
-        // This method will be called once at the end of pipeline execution; if no input is received, this method is not called
         protected override void EndProcessing()
         {
+            if (PipelineInputList.Count > 1)
+                InputObject = PipelineInputList;
+
             var buffer = new ConsoleBuffer();
-            var container = new Container(10, 10, 40, 40);
+            var container = new Container(0, 0, Console.WindowWidth, Console.WindowHeight);
             buffer.AddControl(container);
 
             var label = new Label(0, 0, "Listing");
@@ -55,25 +56,22 @@ namespace PSCLUITools
             label.AddPadding("left");
             label.AddPadding("right");
             var menu = new Menu(0, 0, InputObject);
-            menu.SetWidth(40);
             menu.AddBorder("all");
             menu.AddPadding("all");
 
             container.AddControl(label);
             container.AddControl(menu);
 
+            var x = Console.WindowWidth / 2 - container.GetWidth() / 2;
+            container.SetHorizontalPosition(x);
+
+            var y = Console.WindowHeight / 2 - container.GetHeight() / 2;
+            container.SetVerticalPosition(y);
+            
             buffer.UpdateAll();
             buffer.Write();
             
             WriteObject(menu.ReadKey());
         }
     }
-
-    /*
-    public class FavoriteStuff
-    {
-        public int FavoriteNumber { get; set; }
-        public string FavoritePet { get; set; }
-    }
-    */
 }

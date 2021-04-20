@@ -194,6 +194,7 @@ namespace PSCLUITools
         public const string KeyCancel = "Escape";
         public const string KeyFind = "Oem2";
         public const string KeyFindNext = "N";
+        public const string KeyFindPrevious = "P";
 
         // Returns a text representation of the control, including borders and whatever else stylings
         public abstract List<string> ToTextRepresentation();
@@ -286,6 +287,12 @@ namespace PSCLUITools
                     width = 0;
             }
 
+            // FIX I do not want this here but it works as a workaround for now. The buffer is the only place 
+            //     that Console.WindowWidth should be used so it can be just changed to something else there. 
+            //     Just check with the width of the buffer, however that's going to end up being done...
+            if (width > Console.WindowWidth)
+                width = Console.WindowWidth;
+
             this.width = width;
         }
 
@@ -318,6 +325,11 @@ namespace PSCLUITools
                     // Bottom edge tried to pass container top edge
                     height = 0;
             }
+
+            // FIX Decreasing two prevents the bottom from escaping outside of the window/buffer. Try 
+            //     to find and fix the actual problem, this is a workaround.
+            if (height >= Console.WindowHeight)
+                height = Console.WindowHeight - 2;
 
             this.height = height;
         }
@@ -420,24 +432,28 @@ namespace PSCLUITools
                 case "top":
                     if (!this.PaddingTop)
                     {
+                        this.SetHeight(this.GetHeight() + 1);
                         this.PaddingTop = true;
                     }
                     break;
                 case "right":
                     if (!this.PaddingRight)
                     {
+                        this.SetWidth(this.GetWidth() + 1);
                         this.PaddingRight = true;
                     }
                     break;
                 case "bottom":
                     if (!this.PaddingBottom)
                     {
+                        this.SetHeight(this.GetHeight() + 1);
                         this.PaddingBottom = true;
                     }
                     break;
                 case "left":
                     if (!this.PaddingLeft)
                     {
+                        this.SetWidth(this.GetWidth() + 1);
                         this.PaddingLeft = true;
                     }
                     break;
@@ -564,6 +580,7 @@ namespace PSCLUITools
         public bool SetContainerToWidestControlWidth { get; set; } = true;
         public bool SetControlsToContainerWidth { get; set; } = true;
         public bool AutoPositionControls { get; set; } = true;
+        public bool SetContainerToCombinedControlHeight { get; set; } = true;
 
         public List<Control> controls = new List<Control>();
 
@@ -586,16 +603,15 @@ namespace PSCLUITools
             control.Container = this;
             control.Buffer = this.Buffer;
 
+            if (this.SetContainerToCombinedControlHeight)
+                this.SetHeight(Console.WindowHeight);
+
             if (this.SetContainerToWidestControlWidth)
             {
-                if (this.GetWidth() < control.GetWidth())
-                {
-                    this.SetWidth(control.GetWidth());
-
-                    if (this.SetControlsToContainerWidth)
-                        // Set existing member controls to the changed width
-                        SetControlsWidth(this.GetWidth());
-                }
+                this.SetWidth(control.GetWidth());
+                if (this.SetControlsToContainerWidth)
+                    // Set existing member controls to the changed width
+                    SetControlsWidth(this.GetWidth());
             }
 
             if (this.SetControlsToContainerWidth)
@@ -625,19 +641,28 @@ namespace PSCLUITools
             }
 
             if (control.GetBottomEdgePosition() > this.GetBottomEdgePosition())
-            {
                 control.SetBottomEdgePosition(this.GetBottomEdgePosition());
-            }
 
             if (control is Menu)
             {
                 ((Menu) control).SetMiddleMenuItemActive(); // TODO Find out how to cast as Menu at 
                                                             //      the beginning of the method
             }
+
             // TODO control.Container becomes inaccessible unless I make it public, this is not good.
             //      There's an explanation over yonder:
             //      https://stackoverflow.com/questions/567705/why-cant-i-access-c-sharp-protected-members-except-like-this
             controls.Add(control);
+
+            if (this.SetContainerToCombinedControlHeight)
+            {
+                var height = 0;
+                foreach (Control ctrl in this.controls)
+                {
+                    height += ctrl.GetHeight();
+                }
+                this.SetHeight(height);
+            }
         }
 
         public void RemoveControl(Control control)
@@ -655,6 +680,84 @@ namespace PSCLUITools
             if (this.SetControlsToContainerWidth)
                 // Set existing member controls to the new width
                 SetControlsWidth(this.GetWidth());
+        }
+
+        public new void SetHorizontalPosition(int x)
+        {
+            Dictionary<Control, int> newControlPositions = new Dictionary<Control, int>();
+            
+            var numberOfColumns = 0;
+            var direction = "left";
+
+            if (x > this.Position.X)
+            {
+                numberOfColumns = x - this.Position.X;
+                direction = "right";
+            }
+            else if (x < this.Position.X)
+                numberOfColumns = this.Position.X - x;
+            else
+                return;
+
+            // Determine a new position for each contained Control
+            foreach (Control control in this.controls)
+            {
+                var newX = control.Position.X;
+                if (direction == "right")
+                    newX += numberOfColumns;
+                else
+                    newX -= numberOfColumns;
+
+                newControlPositions.Add(control, newX);
+            }
+
+            // Move this Container
+            base.SetHorizontalPosition(x);
+            
+            // Move each Control to its new position
+            foreach (var newPos in newControlPositions)
+            {
+                newPos.Key.SetHorizontalPosition(newPos.Value);
+            }
+        }
+
+        public new void SetVerticalPosition(int y)
+        {
+            Dictionary<Control, int> newControlPositions = new Dictionary<Control, int>();
+            
+            var numberOfRows = 0;
+            var direction = "up";
+
+            if (y > this.Position.Y)
+            {
+                numberOfRows = y - this.Position.Y;
+                direction = "down";
+            }
+            else if (y < this.Position.Y)
+                numberOfRows = this.Position.Y - y;
+            else
+                return;
+
+            // Determine a new position for each contained Control
+            foreach (Control control in this.controls)
+            {
+                var newY = control.Position.Y;
+                if (direction == "down")
+                    newY += numberOfRows;
+                else
+                    newY -= numberOfRows;
+
+                newControlPositions.Add(control, newY);
+            }
+
+            // Move this Container
+            base.SetVerticalPosition(y);
+            
+            // Move each Control to its new position
+            foreach (var newPos in newControlPositions)
+            {
+                newPos.Key.SetVerticalPosition(newPos.Value);
+            }
         }
 
         public override List<string> ToTextRepresentation()
@@ -851,6 +954,14 @@ namespace PSCLUITools
         {
             this.SetHorizontalPosition(left);
             this.SetVerticalPosition(top);
+            for (var i = 0; i < objects.Count; i++)
+            {
+                var objLength = objects[i].ToString().Length;
+                if (objLength > this.GetWidth())
+                {
+                    this.SetWidth(objLength);
+                }
+            }
             this.SetHeight(objects.Count);
             this.Objects = objects;
             this.ActiveObject = objects[0];
@@ -910,7 +1021,9 @@ namespace PSCLUITools
                         this.Buffer.Write();
                         break;
                     case KeyFind:
-                        Console.SetCursorPosition(0,0);
+                        // TODO Add a Input control that takes... input. So it can be 
+                        //      dropped over on a position that makes sense and be readable.
+                        Console.SetCursorPosition(0,Console.WindowHeight);
                         Console.Write("Find: ");
                         ConsoleKeyInfo searchKey = Console.ReadKey(true);
                         searchTerm = "";
@@ -920,22 +1033,35 @@ namespace PSCLUITools
                             Console.Write(searchKey.KeyChar);
                             searchKey = Console.ReadKey(true);
                         }
-                        findItem = this.FindItem(searchTerm);
+                        findItem = this.FindNextItem(searchTerm);
                         if (findItem != null)
                         {
                             this.ActiveObject = findItem;
                         }
-                        this.MoveActiveObjectToMiddle();
+                        if (this.Objects.Count > this.GetNumberOfAvailebleRowsForItems())
+                            this.MoveActiveObjectToMiddle();
                         this.Buffer.UpdateAll();
                         this.Buffer.Write();
                         break;
                     case KeyFindNext:
-                        findItem = this.FindItem(searchTerm);
+                        findItem = this.FindNextItem(searchTerm);
                         if (findItem != null)
                         {
                             this.ActiveObject = findItem;
                         }
-                        this.MoveActiveObjectToMiddle();
+                        if (this.Objects.Count > this.GetNumberOfAvailebleRowsForItems())
+                            this.MoveActiveObjectToMiddle();
+                        this.Buffer.UpdateAll();
+                        this.Buffer.Write();
+                        break;
+                    case KeyFindPrevious:
+                        findItem = this.FindPreviousItem(searchTerm);
+                        if (findItem != null)
+                        {
+                            this.ActiveObject = findItem;
+                        }
+                        if (this.Objects.Count > this.GetNumberOfAvailebleRowsForItems())
+                            this.MoveActiveObjectToMiddle();
                         this.Buffer.UpdateAll();
                         this.Buffer.Write();
                         break;
@@ -1014,7 +1140,7 @@ namespace PSCLUITools
             }
         }
 
-        public Object FindItem(string searchTerm)
+        public Object FindNextItem(string searchTerm)
         {
             searchTerm = searchTerm.ToLower();
             Regex regex = new Regex(searchTerm);
@@ -1026,6 +1152,34 @@ namespace PSCLUITools
                 if (index > this.Objects.Count - 1)
                 {
                     index = 0;
+                }
+
+                if (index == firstIndex)
+                {
+                    return null;
+                }
+
+                var control = this.Objects[index];
+                Match match = regex.Match(control.ToString().ToLower());
+                if (match.Success)
+                {
+                    return control;
+                }
+            }
+        }
+
+        public Object FindPreviousItem(string searchTerm)
+        {
+            searchTerm = searchTerm.ToLower();
+            Regex regex = new Regex(searchTerm);
+            var index = this.Objects.IndexOf(this.ActiveObject);
+            var firstIndex = index;
+            while (true)
+            {
+                index--;
+                if (index < 0)
+                {
+                    index = this.Objects.Count - 1;
                 }
 
                 if (index == firstIndex)
@@ -1191,6 +1345,12 @@ namespace PSCLUITools
                     width--;
 
                 if (this.BorderLeft)
+                    width--;
+
+                if (this.PaddingRight)
+                    width--;
+
+                if (this.PaddingLeft)
                     width--;
 
                 label.SetWidth(width);
