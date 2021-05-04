@@ -171,11 +171,11 @@ namespace PSCLUITools
         protected bool PaddingBottom { get; set; } = false;
         protected bool PaddingLeft { get; set; } = false;
         public char BorderCharacter { get; set; } = '#';
-        public char PaddingCharacterTop { get; set; } = ' ';
-        public char PaddingCharacterRight { get; set; } = ' ';
-        public char PaddingCharacterBottom { get; set; } = ' ';
-        public char PaddingCharacterLeft { get; set; } = ' ';
-        public char FillCharacter { get; set; } = ' ';
+        public char PaddingCharacterTop { get; set; } = '.';
+        public char PaddingCharacterRight { get; set; } = '.';
+        public char PaddingCharacterBottom { get; set; } = '.';
+        public char PaddingCharacterLeft { get; set; } = '.';
+        public char FillCharacter { get; set; } = '`';
         public char SelectCharacter { get; set; } = '+';
         public char ActiveCharacter { get; set; } = '>';
         public char SelectedAndActiveCharacter { get; set; } = '*';
@@ -473,24 +473,28 @@ namespace PSCLUITools
                 case "top":
                     if (this.PaddingTop)
                     {
+                        this.SetHeight(this.GetHeight() - 1);
                         this.PaddingTop = false;
                     }
                     break;
                 case "right":
                     if (this.PaddingRight)
                     {
+                        this.SetWidth(this.GetWidth() - 1);
                         this.PaddingRight = false;
                     }
                     break;
                 case "bottom":
                     if (this.PaddingBottom)
                     {
+                        this.SetHeight(this.GetHeight() - 1);
                         this.PaddingBottom = false;
                     }
                     break;
                 case "left":
                     if (this.PaddingLeft)
                     {
+                        this.SetWidth(this.GetWidth() - 1);
                         this.PaddingLeft = false;
                     }
                     break;
@@ -644,10 +648,8 @@ namespace PSCLUITools
                 control.SetBottomEdgePosition(this.GetBottomEdgePosition());
 
             if (control is Menu)
-            {
                 ((Menu) control).SetMiddleMenuItemActive(); // TODO Find out how to cast as Menu at 
                                                             //      the beginning of the method
-            }
 
             // TODO control.Container becomes inaccessible unless I make it public, this is not good.
             //      There's an explanation over yonder:
@@ -804,7 +806,6 @@ namespace PSCLUITools
 
         public override List<string> ToTextRepresentation()
         {
-            // TODO Implement padding top and bottom
             var text = new List<string>();
             var txt = this.Text;
             var horizontalBorder = new string(this.BorderCharacter, this.GetWidth());
@@ -839,16 +840,11 @@ namespace PSCLUITools
             {
                 // There's only room for one character
                 if (this.BorderTop || this.BorderRight || this.BorderBottom || this.BorderLeft)
-                {
                     // And it will be a border one
                     text.Add(this.BorderCharacter.ToString());
-                    return text;
-                }
                 else
-                {
                     text.Add(txt.Substring(0,1));
-                    return text;
-                }
+                return text;
             }
 
             if (this.BorderTop)
@@ -882,16 +878,20 @@ namespace PSCLUITools
             }
             else
             {
-                // TODO Implement left and right padding without left and right borders
                 if (this.BorderRight && this.PaddingRight)
                 {
                     txt = txt + this.PaddingCharacterRight + this.BorderCharacter;
-                    emptyLine = emptyLine + this.PaddingCharacterRight + this.BorderCharacter;
+                    emptyLine = emptyLine + this.BorderCharacter;
                 }
                 else if (this.BorderRight)
                 {
                     txt = txt + this.BorderCharacter;
                     emptyLine = emptyLine + this.BorderCharacter;
+                }
+                else if (this.PaddingRight)
+                {
+                    txt = txt + this.PaddingCharacterRight;
+                    emptyLine = emptyLine + this.PaddingCharacterRight;
                 }
                 else
                     emptyLine = emptyLine + this.FillCharacter;
@@ -899,12 +899,17 @@ namespace PSCLUITools
                 if (this.BorderLeft && this.PaddingLeft)
                 {
                     txt = "" + this.BorderCharacter + this.PaddingCharacterLeft + txt;
-                    emptyLine = "" + this.BorderCharacter + this.PaddingCharacterLeft + emptyLine;
+                    emptyLine = "" + this.BorderCharacter + emptyLine;
                 }
                 else if (this.BorderLeft)
                 {
                     txt = this.BorderCharacter + txt;
                     emptyLine = this.BorderCharacter + emptyLine;
+                }
+                else if (this.PaddingLeft)
+                {
+                    txt = this.PaddingCharacterLeft + txt;
+                    emptyLine = this.PaddingCharacterLeft + emptyLine;
                 }
                 else
                     emptyLine = this.FillCharacter + emptyLine;
@@ -912,6 +917,9 @@ namespace PSCLUITools
                 if (!this.BorderRight && !this.BorderLeft && this.GetWidth() == 1)
                     emptyLine = "" + this.FillCharacter;
             }
+
+            if (this.PaddingTop)
+                text.Add(emptyLine.Replace(this.FillCharacter, this.PaddingCharacterTop));
 
             text.Add(txt);
 
@@ -923,6 +931,12 @@ namespace PSCLUITools
             if (this.BorderBottom)
                 numberOfEmptyLines--;
 
+            if (this.PaddingTop)
+                numberOfEmptyLines--;
+
+            if (this.PaddingBottom)
+                numberOfEmptyLines--;
+
             if (numberOfEmptyLines > 1)
             {
                 for (var i = 1; i < numberOfEmptyLines; i++)
@@ -931,6 +945,9 @@ namespace PSCLUITools
                 }
             }
 
+            if (this.PaddingTop)
+                text.Add(emptyLine.Replace(this.FillCharacter, this.PaddingCharacterBottom));
+            
             if (this.BorderBottom)
                 text.Add(horizontalBorder);
 

@@ -46,6 +46,23 @@ namespace PSCLUITools
             if (PipelineInputList.Count > 1)
                 InputObject = PipelineInputList;
 
+            //var buffer = new ConsoleBuffer();
+            //var container = new Container(0, 0, Console.WindowWidth, Console.WindowHeight);
+            //buffer.AddControl(container);
+
+            //var label = new Label(0, 0, "This is a thing");
+            //label.AddBorder("all");
+            //label.AddPadding("all");
+            //label.SetHeight(label.GetHeight() + 1);
+
+            //container.AddControl(label);
+
+            //var x = Console.WindowWidth / 2 - container.GetWidth() / 2;
+            //container.SetHorizontalPosition(x);
+
+            //var y = Console.WindowHeight / 2 - container.GetHeight() / 2;
+            //container.SetVerticalPosition(y);
+
             var buffer = new ConsoleBuffer();
             var container = new Container(0, 0, Console.WindowWidth, Console.WindowHeight);
             buffer.AddControl(container);
