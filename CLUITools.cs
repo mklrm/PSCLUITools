@@ -36,9 +36,10 @@ namespace PSCLUITools
             this.container.controls.Add(control);
         }
 
-        public void RemoveControl(Container container)
+        public void RemoveControl(Control control)
         {
-            throw new NotImplementedException();
+            control.Buffer = this;
+            this.container.controls.Remove(control);
         }
     }
 
@@ -210,6 +211,9 @@ namespace PSCLUITools
 
         public Buffer Buffer { get; set; }
         // TODO Respect boundaries of other Controls within the Container
+        // NOTE Should probably just scope for Container to arrange Controls within it either vertically or 
+        //      horizontally for now, maybe even remove any direct way of sizing and positioning of other 
+        //      types of Control
 
         public void SetHorizontalPosition(int x)
         {
@@ -602,6 +606,20 @@ namespace PSCLUITools
                 control.SetWidth(width);
         }
 
+        public int GetWidestControlWidth()
+        {
+            int i = 0;
+            foreach (Control control in this.controls)
+            {
+                int y = control.GetWidth();
+                if (y > i)
+                {
+                    i = y;
+                }
+            }
+            return i;
+        }
+
         public void AddControl(Control control)
         {
             control.Container = this;
@@ -960,6 +978,274 @@ namespace PSCLUITools
         }
     }
 
+    class TextBox : Control
+    {
+        public string Text { get; set; }
+        public int CursorPositionTop { get; set; }
+        public int CursorPositionLeft { get; set; }
+
+        public TextBox(int left, int top, string text)
+        {
+            this.SetHorizontalPosition(left);
+            this.SetVerticalPosition(top);
+            this.SetWidth(text.Length);
+            this.SetHeight(1);
+            this.Text = text;
+        }
+
+        public TextBox(int left, int top, int width)
+        {
+            this.SetHorizontalPosition(left);
+            this.SetVerticalPosition(top);
+            this.SetWidth(width);
+            this.SetHeight(1);
+            this.Text = "";
+        }
+
+        public new void SetHorizontalPosition(int x)
+        {
+            if (this.Container != null)
+            {
+                if (x + this.GetWidth() > this.Container.GetRightEdgePosition())
+                {
+                    this.Position = new Coordinates(x, this.Position.Y);
+                    this.SetRightEdgePosition(this.Container.GetRightEdgePosition());
+                    return;
+                }
+
+                if (x < this.Container.GetLeftEdgePosition())
+                {
+                    this.SetLeftEdgePosition(this.Container.GetLeftEdgePosition());
+                    // Remove the number of characters passing left side of the Container
+                    width = this.GetWidth();
+                    width = width - (this.Container.GetLeftEdgePosition() - x);
+                    this.SetWidth(width);
+                    Console.WriteLine(this.GetWidth());
+                    return;
+                }
+            }
+            
+            this.CursorPositionLeft = x;
+
+            if (this.BorderLeft)
+                this.CursorPositionLeft += 1;
+            if (this.PaddingLeft)
+                this.CursorPositionLeft += 1;
+
+            this.Position = new Coordinates(x, this.Position.Y);
+        }
+
+        public new void SetVerticalPosition(int y)
+        {
+            if (this.Container != null)
+            {
+                if (y + this.GetHeight() > this.Container.GetBottomEdgePosition())
+                {
+                    this.Position = new Coordinates(this.Position.X, y);
+                    this.SetBottomEdgePosition(this.Container.GetBottomEdgePosition());
+                    return;
+                }
+
+                if (y < this.Container.GetTopEdgePosition())
+                {
+                    this.SetTopEdgePosition(this.Container.GetTopEdgePosition());
+                    // Remove the number of characters passing top side of the Container
+                    height = this.GetHeight();
+                    height = height - (this.Container.GetTopEdgePosition() - y);
+                    this.SetHeight(height);
+                    return;
+                }
+            }
+
+            this.Position = new Coordinates(this.Position.X, y);
+        }
+
+        public string ReadKey()
+        {
+            this.CursorPositionTop = this.Position.Y;
+
+            if (this.BorderTop)
+                this.CursorPositionTop += 1;
+            if (this.PaddingTop)
+                this.CursorPositionTop += 1;
+
+            this.CursorPositionLeft = this.Position.X;
+
+            if (this.BorderLeft)
+                this.CursorPositionLeft += 1;
+            if (this.PaddingLeft)
+                this.CursorPositionLeft += 1;
+            
+            // TODO Deal with there not being enough room for the cursor in the TextBox
+
+            Console.SetCursorPosition(this.CursorPositionLeft,this.CursorPositionTop);
+            ConsoleKeyInfo key = Console.ReadKey(true);
+            while (key.Key != ConsoleKey.Enter)
+            {
+                this.Text += key.KeyChar;
+                // TODO Deal with there not being enough room for the text in the TextBox
+                Console.Write(key.KeyChar);
+                key = Console.ReadKey(true);
+            }
+            return this.Text;
+        }
+
+        public override List<string> ToTextRepresentation()
+        {
+            var text = new List<string>();
+            var txt = this.Text;
+            var horizontalBorder = new string(this.BorderCharacter, this.GetWidth());
+            var count = this.GetWidth() - 2;
+            if (count < 0)
+                count = 0;
+            var emptyLine = new String(this.FillCharacter, count);
+            var textHorizontalSpace = this.GetWidth();
+
+            if (this.BorderRight)
+                textHorizontalSpace--;
+
+            if (this.BorderLeft)
+                textHorizontalSpace--;
+            
+            if (this.PaddingRight)
+                textHorizontalSpace--;
+
+            if (this.PaddingLeft)
+                textHorizontalSpace--;
+
+            if (textHorizontalSpace < 0)
+                textHorizontalSpace = 0;
+            
+            if (this.GetWidth() == 0 || this.GetHeight() == 0)
+            {
+                text.Add("");
+                return text;
+            }
+
+            if (this.GetWidth() + this.GetHeight() == 2)
+            {
+                // There's only room for one character
+                if (this.BorderTop || this.BorderRight || this.BorderBottom || this.BorderLeft)
+                    // And it will be a border one
+                    text.Add(this.BorderCharacter.ToString());
+                else
+                    text.Add(txt.Substring(0,1));
+                return text;
+            }
+
+            if (this.BorderTop)
+            {
+                text.Add(horizontalBorder);
+                if (this.GetHeight() == 1)
+                {
+                    return text;
+                }
+                else if (this.GetHeight() == 2 && this.BorderBottom)
+                {
+                    text.Add(horizontalBorder);
+                    return text;
+                }
+            }
+
+            if (txt.Length > textHorizontalSpace)
+                txt = txt.Substring(0, textHorizontalSpace);
+            else
+                txt = txt.PadRight(textHorizontalSpace, this.FillCharacter);
+
+            if (this.BorderLeft && this.BorderRight && this.GetWidth() == 2)
+            {
+                txt = new string(this.BorderCharacter, 2);
+                emptyLine = new string(this.BorderCharacter, 2);
+            }
+            else if ((this.BorderLeft || this.BorderRight) && this.GetWidth() == 1)
+            {
+                txt = new string(this.BorderCharacter, 1);
+                emptyLine = new string(this.BorderCharacter, 1);
+            }
+            else
+            {
+                if (this.BorderRight && this.PaddingRight)
+                {
+                    txt = txt + this.PaddingCharacterRight + this.BorderCharacter;
+                    emptyLine = emptyLine + this.BorderCharacter;
+                }
+                else if (this.BorderRight)
+                {
+                    txt = txt + this.BorderCharacter;
+                    emptyLine = emptyLine + this.BorderCharacter;
+                }
+                else if (this.PaddingRight)
+                {
+                    txt = txt + this.PaddingCharacterRight;
+                    emptyLine = emptyLine + this.PaddingCharacterRight;
+                }
+                else
+                    emptyLine = emptyLine + this.FillCharacter;
+                
+                if (this.BorderLeft && this.PaddingLeft)
+                {
+                    txt = "" + this.BorderCharacter + this.PaddingCharacterLeft + txt;
+                    emptyLine = "" + this.BorderCharacter + emptyLine;
+                }
+                else if (this.BorderLeft)
+                {
+                    txt = this.BorderCharacter + txt;
+                    emptyLine = this.BorderCharacter + emptyLine;
+                }
+                else if (this.PaddingLeft)
+                {
+                    txt = this.PaddingCharacterLeft + txt;
+                    emptyLine = this.PaddingCharacterLeft + emptyLine;
+                }
+                else
+                    emptyLine = this.FillCharacter + emptyLine;
+
+                if (!this.BorderRight && !this.BorderLeft && this.GetWidth() == 1)
+                    emptyLine = "" + this.FillCharacter;
+            }
+
+            if (this.PaddingTop)
+                text.Add(emptyLine.Replace(this.FillCharacter, this.PaddingCharacterTop));
+
+            text.Add(txt);
+
+            var numberOfEmptyLines = this.GetHeight();
+
+            if (this.BorderTop)
+                numberOfEmptyLines--;
+
+            if (this.BorderBottom)
+                numberOfEmptyLines--;
+
+            if (this.PaddingTop)
+                numberOfEmptyLines--;
+
+            if (this.PaddingBottom)
+                numberOfEmptyLines--;
+
+            if (numberOfEmptyLines > 1)
+            {
+                for (var i = 1; i < numberOfEmptyLines; i++)
+                {
+                    text.Add(emptyLine);
+                }
+            }
+
+            if (this.PaddingTop)
+                text.Add(emptyLine.Replace(this.FillCharacter, this.PaddingCharacterBottom));
+            
+            if (this.BorderBottom)
+                text.Add(horizontalBorder);
+
+            return text;
+        }
+        
+        public override List<Object> ToLayerRepresentation()
+        {
+            throw new NotImplementedException();
+        }
+    }
+
     class Menu : Control
     {
         public List<Object> Objects { get; set; } = new List<Object>();
@@ -1038,34 +1324,34 @@ namespace PSCLUITools
                         this.Buffer.Write();
                         break;
                     case KeyFind:
-                        // TODO Add a Input control that takes... input. So it can be 
-                        //      dropped over on a position that makes sense and be readable.
-                        Console.SetCursorPosition(0,Console.WindowHeight);
-                        Console.Write("Find: ");
-                        ConsoleKeyInfo searchKey = Console.ReadKey(true);
-                        searchTerm = "";
-                        while (searchKey.Key != ConsoleKey.Enter)
-                        {
-                            searchTerm += searchKey.KeyChar;
-                            Console.Write(searchKey.KeyChar);
-                            searchKey = Console.ReadKey(true);
-                        }
+                        var searchBox = new TextBox(0, 0, 0);
+                        searchBox.AddBorder("all");
+                        searchBox.AddPadding("all");
+                        searchBox.SetWidth(this.GetWidth());
+
+                        var x = this.GetLeftEdgePosition();
+                        searchBox.SetHorizontalPosition(x);
+
+                        var y = this.GetHeight() / 2 - searchBox.GetHeight() / 2;
+                        searchBox.SetVerticalPosition(y);
+                        this.Buffer.AddControl(searchBox);  // TODO : Maybe make it possible to float the 
+                                                            // control in the same container instead.
+                        this.Buffer.UpdateAll();
+                        this.Buffer.Write();
+                        searchTerm = searchBox.ReadKey();
                         findItem = this.FindNextItem(searchTerm);
                         if (findItem != null)
-                        {
                             this.ActiveObject = findItem;
-                        }
                         if (this.Objects.Count > this.GetNumberOfAvailebleRowsForItems())
                             this.MoveActiveObjectToMiddle();
+                        this.Buffer.RemoveControl(searchBox);
                         this.Buffer.UpdateAll();
                         this.Buffer.Write();
                         break;
                     case KeyFindNext:
                         findItem = this.FindNextItem(searchTerm);
                         if (findItem != null)
-                        {
                             this.ActiveObject = findItem;
-                        }
                         if (this.Objects.Count > this.GetNumberOfAvailebleRowsForItems())
                             this.MoveActiveObjectToMiddle();
                         this.Buffer.UpdateAll();
@@ -1074,9 +1360,7 @@ namespace PSCLUITools
                     case KeyFindPrevious:
                         findItem = this.FindPreviousItem(searchTerm);
                         if (findItem != null)
-                        {
                             this.ActiveObject = findItem;
-                        }
                         if (this.Objects.Count > this.GetNumberOfAvailebleRowsForItems())
                             this.MoveActiveObjectToMiddle();
                         this.Buffer.UpdateAll();
