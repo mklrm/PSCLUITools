@@ -1060,6 +1060,19 @@ namespace PSCLUITools
             this.Position = new Coordinates(this.Position.X, y);
         }
 
+        public int GetLastLegalCursorPosition()
+        {
+            var lastLegalPos = this.GetRightEdgePosition();
+
+            if (this.BorderLeft)
+                lastLegalPos--;
+            
+            if (this.PaddingLeft)
+                lastLegalPos--;
+
+            return lastLegalPos;
+        }
+
         public string ReadKey()
         {
             this.CursorPositionTop = this.Position.Y;
@@ -1076,15 +1089,28 @@ namespace PSCLUITools
             if (this.PaddingLeft)
                 this.CursorPositionLeft += 1;
             
-            // TODO Deal with there not being enough room for the cursor in the TextBox
-
             Console.SetCursorPosition(this.CursorPositionLeft,this.CursorPositionTop);
             ConsoleKeyInfo key = Console.ReadKey(true);
             while (key.Key != ConsoleKey.Enter)
             {
-                this.Text += key.KeyChar;
-                // TODO Deal with there not being enough room for the text in the TextBox
-                Console.Write(key.KeyChar);
+                if (key.Key == ConsoleKey.Backspace)
+                {
+                    int cursorPosX = Console.CursorLeft;
+                    if (cursorPosX > this.CursorPositionLeft)
+                    {
+                        Console.SetCursorPosition(cursorPosX - 1, this.CursorPositionTop);
+                        Console.Write(this.FillCharacter);
+                        Console.SetCursorPosition(cursorPosX - 1, this.CursorPositionTop);
+                    }
+                } else { 
+                    // TODO Allow the text to scroll instead of only allowing to input until the 
+                    // right edge is reached:
+                    if (Console.CursorLeft + 1 <= this.GetLastLegalCursorPosition())
+                    {
+                        this.Text += key.KeyChar;
+                        Console.Write(key.KeyChar);
+                    }
+                }
                 key = Console.ReadKey(true);
             }
             return this.Text;
