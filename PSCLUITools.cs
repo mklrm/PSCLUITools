@@ -45,8 +45,18 @@ namespace PSCLUITools
         {
             if (PipelineInputList.Count > 1)
                 InputObject = PipelineInputList;
+            
+            // USING PSHOST:
+            //var size = new Size(2, 2);
+            //var bufferCell = new BufferCell('#', ConsoleColor.Red, ConsoleColor.Black, 0);
+            //var bufferCellArray = Host.UI.RawUI.NewBufferCellArray(size, bufferCell);
+            //var coordinates = new Coordinates(2,2);
+            //Host.UI.RawUI.SetBufferContents(coordinates, bufferCellArray);
+            //Console.WriteLine(Host.UI.RawUI.NewBufferCellArray(new Size(2, 2), new BufferCell('#', ConsoleColor.Red, ConsoleColor.Red, 0)));
 
-            var buffer = new ConsoleBuffer();
+            //var buffer = new Buffer(Host);
+
+            var buffer = new Buffer();
             var container = new Container(0, 0, Console.WindowWidth, Console.WindowHeight);
             buffer.AddControl(container);
 

@@ -6,7 +6,7 @@ using System.Text.RegularExpressions;
 
 namespace PSCLUITools
 {
-    abstract class Buffer : PSCmdlet
+    class Buffer : PSCmdlet
     {
         internal static int left = Console.WindowLeft;
         internal static int top = Console.WindowTop;
@@ -14,21 +14,125 @@ namespace PSCLUITools
         internal static int width = Console.WindowWidth;
         internal static int height = Console.WindowHeight;
         protected Container container = new Container(left, top, width, height);
+        protected PSHost PSHost { get; set;}
 
-        // Inserts 'List<string> text' on the buffer starting from row and column
-        public abstract void Insert(int row, int column, List<string> text);
+        private static char[,] screenBufferArray = new char[width,height];
 
-        // Inserts attached controls to the buffer
-        public abstract void Update(Control control);
+        public Buffer()
+        {
+            // TODO See at some point if this can be removed
+            this.container.SetContainerToWidestControlWidth = false;
+            this.container.SetControlsToContainerWidth = false;
+            this.container.AutoPositionControls = false;
+        }
 
-        // Inserts all attached controls to the buffer
-        public abstract void UpdateAll();
+        public Buffer(PSHost host)
+        {
+            this.PSHost = host;
+            this.container.SetContainerToWidestControlWidth = false;
+            this.container.SetControlsToContainerWidth = false;
+            this.container.AutoPositionControls = false;
+        }
 
-        // Writes the buffer to the console
-        public abstract void Write();
+        public void Insert(int column, int row, List<string> text)
+        {
+            if (this.PSHost == null)
+            {
+                foreach (string txt in text)
+                {
+                    var txtArr = (Char[]) txt.ToCharArray(0,txt.Length);
+                    var i = 0;
+                    foreach (char c in txtArr)
+                    {
+                        screenBufferArray[column + i, row] = c;
+                        i++;
+                    }
+                    row++;
+                }
+            }
+            else
+            {
+                throw new NotImplementedException();
+            }
+        }
+
+        public void Update(Control control)
+        {
+            if (this.PSHost == null)
+            {
+                if (control is Container)
+                {
+                    var container = (Container) control;
+                    foreach (Control childControl in container.controls)
+                    {
+                        this.Update(childControl);
+                    }
+                }
+                else
+                {
+                    var left = control.Position.X;
+                    var top = control.Position.Y;
+                    var text = control.GetTextRepresentation();
+                    this.Insert(left, top, text);
+                }
+            }
+            else
+            {
+                throw new NotImplementedException();
+            }
+        }
+
+        public void UpdateAll()
+        {
+            if (this.PSHost == null)
+            {
+                foreach (Control control in this.container.controls)
+                {
+                    this.Update(control);
+                }
+            }
+            else
+            {
+                throw new NotImplementedException();
+            }
+        }
+
+        public void Write()
+        {
+            if (this.PSHost == null)
+            {
+                var screenBuffer = "";
+                // Iterate through buffer, adding each value to screenBuffer
+                for (int row = 0; row < height - 1; row++)
+                {
+                    for (int column = 0; column < width; column++)
+                    {
+                        var character = screenBufferArray[column, row];
+                        if ((char) character == 0)
+                        {
+                            // On Windows Terminal empty indices in the char array 
+                            // default to no character instead of a space so add one 
+                            // of them instead
+                            character = ' ';
+                        }
+                        screenBuffer += character;
+                    }
+                }
+                // Set cursor position to top left and draw the string
+                Console.SetCursorPosition(left, top);
+                Console.Write(screenBuffer);
+                screenBufferArray = new char[width, height];
+            }
+            else
+            {
+                throw new NotImplementedException();
+            }
+        }
         
-        // Clears the console buffer area or restores the original state
-        public abstract void Clear();
+        public void Clear()
+        {
+            throw new NotImplementedException();
+        }
 
         public void AddControl(Control control)
         {
@@ -43,123 +147,132 @@ namespace PSCLUITools
         }
     }
 
-    class ConsoleBuffer : Buffer
-    {
-        // Used where PSHost is not available (such as Linux)
-        // Heavily loans from: http://cgp.wikidot.com/consle-screen-buffer
+    //class ConsoleBuffer : Buffer
+    //{
+        //// Used where PSHost is not available (such as Linux)
+        //// Heavily loans from: http://cgp.wikidot.com/consle-screen-buffer
 
-        private static char[,] screenBufferArray = new char[width,height];
+        //// TODO See at some point if separating backgound updates from text content updates and using 
+        //// Console.Write() to output the text speeds Buffer up. 
 
-        public ConsoleBuffer()
-        {
-            this.container.SetContainerToWidestControlWidth = false;
-            this.container.SetControlsToContainerWidth = false;
-            this.container.AutoPositionControls = false;
-        }
+        //private static char[,] screenBufferArray = new char[width,height];
 
-        public override void Insert(int column, int row, List<string> text)
-        {
-            foreach (string txt in text)
-            {
-                var txtArr = (Char[]) txt.ToCharArray(0,txt.Length);
-                var i = 0;
-                foreach (char c in txtArr)
-                {
-                    screenBufferArray[column + i, row] = c;
-                    i++;
-                }
-                row++;
-            }
-        }
+        //public override void Insert(int column, int row, List<string> text)
+        //{
+            //foreach (string txt in text)
+            //{
+                //var txtArr = (Char[]) txt.ToCharArray(0,txt.Length);
+                //var i = 0;
+                //foreach (char c in txtArr)
+                //{
+                    //screenBufferArray[column + i, row] = c;
+                    //i++;
+                //}
+                //row++;
+            //}
+        //}
 
-        public override void Update(Control control)
-        {
-            if (control is Container)
-            {
-                var container = (Container) control;
-                foreach (Control childControl in container.controls)
-                {
-                    this.Update(childControl);
-                }
-            }
-            else
-            {
-                var left = control.Position.X;
-                var top = control.Position.Y;
-                var text = control.ToTextRepresentation();
-                this.Insert(left, top, text);
-            }
-        }
+        //public override void Update(Control control)
+        //{
+            //if (control is Container)
+            //{
+                //var container = (Container) control;
+                //foreach (Control childControl in container.controls)
+                //{
+                    //this.Update(childControl);
+                //}
+            //}
+            //else
+            //{
+                //var left = control.Position.X;
+                //var top = control.Position.Y;
+                //var text = control.GetTextRepresentation();
+                //this.Insert(left, top, text);
+            //}
+        //}
 
-        public override void UpdateAll()
-        {
-            foreach (Control control in this.container.controls)
-            {
-                this.Update(control);
-            }
-        }
+        //public override void UpdateAll()
+        //{
+            //foreach (Control control in this.container.controls)
+            //{
+                //this.Update(control);
+            //}
+        //}
 
-        public override void Write()
-        {
-            var screenBuffer = "";
-            // Iterate through buffer, adding each value to screenBuffer
-            for (int row = 0; row < height - 1; row++)
-            {
-                for (int column = 0; column < width; column++)
-                {
-                    var character = screenBufferArray[column, row];
-                    if ((char) character == 0)
-                    {
-                        // On Windows Terminal empty indices in the char array 
-                        // default to no character instead of a space so add one 
-                        // of them instead
-                        character = ' ';
-                    }
-                    screenBuffer += character;
-                }
-            }
-            // Set cursor position to top left and draw the string
-            Console.SetCursorPosition(left, top);
-            Console.Write(screenBuffer);
-            screenBufferArray = new char[width, height];
-        }
+        //public override void Write()
+        //{
+            //var screenBuffer = "";
+            //// Iterate through buffer, adding each value to screenBuffer
+            //for (int row = 0; row < height - 1; row++)
+            //{
+                //for (int column = 0; column < width; column++)
+                //{
+                    //var character = screenBufferArray[column, row];
+                    //if ((char) character == 0)
+                    //{
+                        //// On Windows Terminal empty indices in the char array 
+                        //// default to no character instead of a space so add one 
+                        //// of them instead
+                        //character = ' ';
+                    //}
+                    //screenBuffer += character;
+                //}
+            //}
+            //// Set cursor position to top left and draw the string
+            //Console.SetCursorPosition(left, top);
+            //Console.Write(screenBuffer);
+            //screenBufferArray = new char[width, height];
+        //}
 
-        public override void Clear()
-        {
-            throw new NotImplementedException();
-        }
-    }
+        //public override void Clear()
+        //{
+            //throw new NotImplementedException();
+        //}
+    //}
 
-    class PSHostBuffer : Buffer
-    {
-        public override void Insert(int row, int column, List<string> text)
-        {
-            throw new NotImplementedException();
-        }
+    //class PSHostBuffer : Buffer
+    //{
+        //// TODO : Ape what ConsoleBuffer does
+        //// 1. Update calls GetPSHostRawUIRepresentation
+        
+        //public PSHostBuffer(PSHost host)
+        //{
+            //var size = new Size(2, 2);
+            //var bufferCell = new BufferCell('#', ConsoleColor.Red, ConsoleColor.Black, 0);
+            //var bufferCellArray = host.UI.RawUI.NewBufferCellArray(size, bufferCell);
+            //var coordinates = new Coordinates(2,2);
+            //host.UI.RawUI.SetBufferContents(coordinates, bufferCellArray);
+        //}
 
-        public override void Update(Control control)
-        {
-            throw new NotImplementedException();
-        }
+        //public override void Insert(int row, int column, List<string> text)
+        //{
+            //throw new NotImplementedException();
+        //}
 
-        public override void UpdateAll()
-        {
-            throw new NotImplementedException();
-        }
+        //public override void Update(Control control)
+        //{
+            //throw new NotImplementedException();
+        //}
 
-        public override void Write()
-        {
-            throw new NotImplementedException();
-        }
+        //public override void UpdateAll()
+        //{
+            //throw new NotImplementedException();
+        //}
 
-        public override void Clear()
-        {
-            throw new NotImplementedException();
-        }
-    }
+        //public override void Write()
+        //{
+            //throw new NotImplementedException();
+        //}
+
+        //public override void Clear()
+        //{
+            //throw new NotImplementedException();
+        //}
+    //}
 
     abstract class Control : PSCmdlet
     {
+        // TODO Change accessibility (public, protected, etc) to whatever it ought to be
         public Coordinates Position { get; set; } = new Coordinates(0, 0);
         protected int width = 0;
         protected int height = 0;
@@ -172,10 +285,15 @@ namespace PSCLUITools
         protected bool PaddingBottom { get; set; } = false;
         protected bool PaddingLeft { get; set; } = false;
         public char BorderCharacter { get; set; } = '#';
+        public BufferCell BorderCell { get; set; } = new BufferCell(' ', 0, 0, 0);
         public char PaddingCharacterTop { get; set; } = '.';
         public char PaddingCharacterRight { get; set; } = '.';
         public char PaddingCharacterBottom { get; set; } = '.';
         public char PaddingCharacterLeft { get; set; } = '.';
+        public BufferCell PaddingCellTop { get; set; } = new BufferCell(' ', 0, 0, 0);
+        public BufferCell PaddingCellRight { get; set; } = new BufferCell(' ', 0, 0, 0);
+        public BufferCell PaddingCellBottom { get; set; } = new BufferCell(' ', 0, 0, 0);
+        public BufferCell PaddingCellLeft { get; set; } = new BufferCell(' ', 0, 0, 0);
         public char FillCharacter { get; set; } = '`';
         public char SelectCharacter { get; set; } = '+';
         public char ActiveCharacter { get; set; } = '>';
@@ -198,13 +316,10 @@ namespace PSCLUITools
         public const string KeyFindPrevious = "P";
 
         // Returns a text representation of the control, including borders and whatever else stylings
-        public abstract List<string> ToTextRepresentation();
+        public abstract List<string> GetTextRepresentation();
 
         // Returns a layered representation of the control
-        public abstract List<Object> ToLayerRepresentation();
-        // TODO Layered isn't actually the right approach/name/description as I probably will have to be 
-        //      returning a bunch of rectangles, single strings and lists of strings each including 
-        //      coordinates that PSHostBuffer will then place on the console.
+        public abstract List<Object> GetPSHostRawUIRepresentation();
 
         // A Container that contains this Control
         public Container Container { get; set; }
@@ -214,6 +329,18 @@ namespace PSCLUITools
         // NOTE Should probably just scope for Container to arrange Controls within it either vertically or 
         //      horizontally for now, maybe even remove any direct way of sizing and positioning of other 
         //      types of Control
+
+        public Control()
+        {
+            // TODO Enable the below lines when a PSHost is available:
+            //var backColor = Host.UI.RawUI.ForegroundColor;
+            //var foreColor = Host.UI.RawUI.BackgroundColor;
+            //this.BorderCell = new BufferCell(this.BorderCharacter, foreColor, backColor, 0);
+            //this.PaddingCellTop = new BufferCell(this.PaddingCharacterTop, foreColor, backColor, 0);
+            //this.PaddingCellRight = new BufferCell(this.PaddingCharacterRight, foreColor, backColor, 0);
+            //this.PaddingCellBottom = new BufferCell(this.PaddingCharacterBottom, foreColor, backColor, 0);
+            //this.PaddingCellLeft = new BufferCell(this.PaddingCharacterLeft, foreColor, backColor, 0);
+        }
 
         public void SetHorizontalPosition(int x)
         {
@@ -780,13 +907,13 @@ namespace PSCLUITools
             }
         }
 
-        public override List<string> ToTextRepresentation()
+        public override List<string> GetTextRepresentation()
         {
             var text = new List<string>();
 
             foreach (Control control in this.controls)
             {
-                foreach (string txt in control.ToTextRepresentation())
+                foreach (string txt in control.GetTextRepresentation())
                 {
                     text.Add(txt);
                 }
@@ -795,7 +922,7 @@ namespace PSCLUITools
             return text;
         }
 
-        public override List<Object> ToLayerRepresentation()
+        public override List<Object> GetPSHostRawUIRepresentation()
         {
             throw new NotImplementedException();
         }
@@ -805,7 +932,7 @@ namespace PSCLUITools
     {
         public string Text { get; set; }
 
-        public Label(int left, int top, string text)
+        public Label(int left, int top, string text) : base()
         {
             this.SetHorizontalPosition(left);
             this.SetVerticalPosition(top);
@@ -814,7 +941,7 @@ namespace PSCLUITools
             this.Text = text;
         }
 
-        public Label(int left, int top, int width, int height)
+        public Label(int left, int top, int width, int height) : base()
         {
             this.SetHorizontalPosition(left);
             this.SetVerticalPosition(top);
@@ -822,7 +949,7 @@ namespace PSCLUITools
             this.SetHeight(height);
         }
 
-        public override List<string> ToTextRepresentation()
+        public override List<string> GetTextRepresentation()
         {
             var text = new List<string>();
             var txt = this.Text;
@@ -972,8 +1099,11 @@ namespace PSCLUITools
             return text;
         }
         
-        public override List<Object> ToLayerRepresentation()
+        public override List<Object> GetPSHostRawUIRepresentation()
         {
+            // TODO Ape what New-Square.psm1 does:
+            //var someElement = Host.UI.RawUI.NewBufferCellArray(width, height, this.Border.Cell);
+            // TODO Ape what New-Menu does with WriteItem etc. (text content)
             throw new NotImplementedException();
         }
     }
@@ -984,7 +1114,7 @@ namespace PSCLUITools
         public int CursorPositionTop { get; set; }
         public int CursorPositionLeft { get; set; }
 
-        public TextBox(int left, int top, string text)
+        public TextBox(int left, int top, string text) : base()
         {
             this.SetHorizontalPosition(left);
             this.SetVerticalPosition(top);
@@ -993,7 +1123,7 @@ namespace PSCLUITools
             this.Text = text;
         }
 
-        public TextBox(int left, int top, int width)
+        public TextBox(int left, int top, int width) : base()
         {
             this.SetHorizontalPosition(left);
             this.SetVerticalPosition(top);
@@ -1116,7 +1246,7 @@ namespace PSCLUITools
             return this.Text;
         }
 
-        public override List<string> ToTextRepresentation()
+        public override List<string> GetTextRepresentation()
         {
             var text = new List<string>();
             var txt = this.Text;
@@ -1266,7 +1396,7 @@ namespace PSCLUITools
             return text;
         }
         
-        public override List<Object> ToLayerRepresentation()
+        public override List<Object> GetPSHostRawUIRepresentation()
         {
             throw new NotImplementedException();
         }
@@ -1279,7 +1409,7 @@ namespace PSCLUITools
         public List<Object> SelectedObjects { get; set; } = new List<Object>(); // Selected objects
         public Object ActiveObject { get; set; } = 0; // Highlighted object
 
-        public Menu(int left, int top, List<Object> objects)
+        public Menu(int left, int top, List<Object> objects) : base()
         {
             this.SetHorizontalPosition(left);
             this.SetVerticalPosition(top);
@@ -1598,7 +1728,7 @@ namespace PSCLUITools
             SetMiddleMenuItemActive();
         }
 
-        public override List<string> ToTextRepresentation()
+        public override List<string> GetTextRepresentation()
         {
             var text = new List<string>();
             if (this.GetHeight() == 0)
@@ -1694,7 +1824,7 @@ namespace PSCLUITools
                 if (this.PaddingLeft)
                     label.AddPadding("left");
 
-                foreach (string lblText in label.ToTextRepresentation())
+                foreach (string lblText in label.GetTextRepresentation())
                 {
                     text.Add(lblText);
                 }
@@ -1711,8 +1841,12 @@ namespace PSCLUITools
             return text;
         }
 
-        public override List<Object> ToLayerRepresentation()
+        public override List<Object> GetPSHostRawUIRepresentation()
         {
+            // TODO Ape what New-Square.psm1 does
+            // TODO Ape what New-Menu does with WriteItem etc. (text content)
+            // TODO Do not fill the inside of the square for no reason, just add 
+            // items in it
             throw new NotImplementedException();
         }
     }
