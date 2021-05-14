@@ -52,36 +52,42 @@ namespace PSCLUITools
             //var bufferCellArray = Host.UI.RawUI.NewBufferCellArray(size, bufferCell);
             //var coordinates = new Coordinates(2,2);
             //Host.UI.RawUI.SetBufferContents(coordinates, bufferCellArray);
-            //Console.WriteLine(Host.UI.RawUI.NewBufferCellArray(new Size(2, 2), new BufferCell('#', ConsoleColor.Red, ConsoleColor.Red, 0)));
 
-            //var buffer = new Buffer(Host);
+            var size = new Size(2, 2);
+            var bufferCell = new BufferCell('#', ConsoleColor.Red, ConsoleColor.Black, 0);
+            var bufferCellArray = Host.UI.RawUI.NewBufferCellArray(size, bufferCell);
+            Console.WriteLine(bufferCellArray.GetType());
+            //var coordinates = new Coordinates(2,2);
+            //Host.UI.RawUI.SetBufferContents(coordinates, bufferCellArray);
 
-            var buffer = new Buffer();
-            var container = new Container(0, 0, Console.WindowWidth, Console.WindowHeight);
-            buffer.AddControl(container);
+            var buffer = new Buffer(Host);
 
-            var label = new Label(0, 0, "Listing");
-            label.AddBorder("all");
-            label.RemoveBorder("bottom");
-            label.AddPadding("left");
-            label.AddPadding("right");
-            var menu = new Menu(0, 0, InputObject);
-            menu.AddBorder("all");
-            menu.AddPadding("all");
+            //var buffer = new Buffer();
+            //var container = new Container(0, 0, Console.WindowWidth, Console.WindowHeight);
+            //buffer.AddControl(container);
 
-            container.AddControl(label);
-            container.AddControl(menu);
+            //var label = new Label(0, 0, "Listing");
+            //label.AddBorder("all");
+            //label.RemoveBorder("bottom");
+            //label.AddPadding("left");
+            //label.AddPadding("right");
+            //var menu = new Menu(0, 0, InputObject);
+            //menu.AddBorder("all");
+            //menu.AddPadding("all");
 
-            var x = Console.WindowWidth / 2 - container.GetWidth() / 2;
-            container.SetHorizontalPosition(x);
+            //container.AddControl(label);
+            //container.AddControl(menu);
 
-            var y = Console.WindowHeight / 2 - container.GetHeight() / 2;
-            container.SetVerticalPosition(y);
+            //var x = Console.WindowWidth / 2 - container.GetWidth() / 2;
+            //container.SetHorizontalPosition(x);
+
+            //var y = Console.WindowHeight / 2 - container.GetHeight() / 2;
+            //container.SetVerticalPosition(y);
             
-            buffer.UpdateAll();
-            buffer.Write();
+            //buffer.UpdateAll();
+            //buffer.Write();
             
-            WriteObject(menu.ReadKey());
+            //WriteObject(menu.ReadKey());
         }
     }
 }

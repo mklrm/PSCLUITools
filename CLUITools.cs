@@ -14,7 +14,7 @@ namespace PSCLUITools
         internal static int width = Console.WindowWidth;
         internal static int height = Console.WindowHeight;
         protected Container container = new Container(left, top, width, height);
-        protected PSHost PSHost { get; set;}
+        internal PSHost PSHost { get; set;}
 
         private static char[,] screenBufferArray = new char[width,height];
 
@@ -147,128 +147,20 @@ namespace PSCLUITools
         }
     }
 
-    //class ConsoleBuffer : Buffer
-    //{
-        //// Used where PSHost is not available (such as Linux)
-        //// Heavily loans from: http://cgp.wikidot.com/consle-screen-buffer
-
-        //// TODO See at some point if separating backgound updates from text content updates and using 
-        //// Console.Write() to output the text speeds Buffer up. 
-
-        //private static char[,] screenBufferArray = new char[width,height];
-
-        //public override void Insert(int column, int row, List<string> text)
-        //{
-            //foreach (string txt in text)
-            //{
-                //var txtArr = (Char[]) txt.ToCharArray(0,txt.Length);
-                //var i = 0;
-                //foreach (char c in txtArr)
-                //{
-                    //screenBufferArray[column + i, row] = c;
-                    //i++;
-                //}
-                //row++;
-            //}
-        //}
-
-        //public override void Update(Control control)
-        //{
-            //if (control is Container)
-            //{
-                //var container = (Container) control;
-                //foreach (Control childControl in container.controls)
-                //{
-                    //this.Update(childControl);
-                //}
-            //}
-            //else
-            //{
-                //var left = control.Position.X;
-                //var top = control.Position.Y;
-                //var text = control.GetTextRepresentation();
-                //this.Insert(left, top, text);
-            //}
-        //}
-
-        //public override void UpdateAll()
-        //{
-            //foreach (Control control in this.container.controls)
-            //{
-                //this.Update(control);
-            //}
-        //}
-
-        //public override void Write()
-        //{
-            //var screenBuffer = "";
-            //// Iterate through buffer, adding each value to screenBuffer
-            //for (int row = 0; row < height - 1; row++)
-            //{
-                //for (int column = 0; column < width; column++)
-                //{
-                    //var character = screenBufferArray[column, row];
-                    //if ((char) character == 0)
-                    //{
-                        //// On Windows Terminal empty indices in the char array 
-                        //// default to no character instead of a space so add one 
-                        //// of them instead
-                        //character = ' ';
-                    //}
-                    //screenBuffer += character;
-                //}
-            //}
-            //// Set cursor position to top left and draw the string
-            //Console.SetCursorPosition(left, top);
-            //Console.Write(screenBuffer);
-            //screenBufferArray = new char[width, height];
-        //}
-
-        //public override void Clear()
-        //{
-            //throw new NotImplementedException();
-        //}
-    //}
-
-    //class PSHostBuffer : Buffer
-    //{
-        //// TODO : Ape what ConsoleBuffer does
-        //// 1. Update calls GetPSHostRawUIRepresentation
+    class BufferCellElement
+    {
+        internal BufferCell[,] CapturedBufferCellArray { get; set; }
+        internal BufferCell[,] NewBufferCellArray { get; set; }
+        internal Coordinates Coordinates { get; set;}
         
-        //public PSHostBuffer(PSHost host)
-        //{
-            //var size = new Size(2, 2);
-            //var bufferCell = new BufferCell('#', ConsoleColor.Red, ConsoleColor.Black, 0);
-            //var bufferCellArray = host.UI.RawUI.NewBufferCellArray(size, bufferCell);
-            //var coordinates = new Coordinates(2,2);
-            //host.UI.RawUI.SetBufferContents(coordinates, bufferCellArray);
-        //}
-
-        //public override void Insert(int row, int column, List<string> text)
-        //{
-            //throw new NotImplementedException();
-        //}
-
-        //public override void Update(Control control)
-        //{
-            //throw new NotImplementedException();
-        //}
-
-        //public override void UpdateAll()
-        //{
-            //throw new NotImplementedException();
-        //}
-
-        //public override void Write()
-        //{
-            //throw new NotImplementedException();
-        //}
-
-        //public override void Clear()
-        //{
-            //throw new NotImplementedException();
-        //}
-    //}
+        public BufferCellElement(BufferCell[,] capturedBufferCellArray, 
+            BufferCell[,] newBufferCellArray, Coordinates coordinates)
+        {
+            this.CapturedBufferCellArray = capturedBufferCellArray;
+            this.NewBufferCellArray = newBufferCellArray;
+            this.Coordinates = coordinates;
+        }
+    }
 
     abstract class Control : PSCmdlet
     {
@@ -319,7 +211,7 @@ namespace PSCLUITools
         public abstract List<string> GetTextRepresentation();
 
         // Returns a layered representation of the control
-        public abstract List<Object> GetPSHostRawUIRepresentation();
+        public abstract List<BufferCellElement> GetPSHostRawUIRepresentation();
 
         // A Container that contains this Control
         public Container Container { get; set; }
@@ -330,18 +222,18 @@ namespace PSCLUITools
         //      horizontally for now, maybe even remove any direct way of sizing and positioning of other 
         //      types of Control
 
-        public Control()
-        {
-            // TODO Enable the below lines when a PSHost is available:
-            //var backColor = Host.UI.RawUI.ForegroundColor;
-            //var foreColor = Host.UI.RawUI.BackgroundColor;
-            //this.BorderCell = new BufferCell(this.BorderCharacter, foreColor, backColor, 0);
-            //this.PaddingCellTop = new BufferCell(this.PaddingCharacterTop, foreColor, backColor, 0);
-            //this.PaddingCellRight = new BufferCell(this.PaddingCharacterRight, foreColor, backColor, 0);
-            //this.PaddingCellBottom = new BufferCell(this.PaddingCharacterBottom, foreColor, backColor, 0);
-            //this.PaddingCellLeft = new BufferCell(this.PaddingCharacterLeft, foreColor, backColor, 0);
-        }
 
+        public void UpdatePSHostVariables()
+        {
+            var backColor = this.Buffer.PSHost.UI.RawUI.ForegroundColor;
+            var foreColor = this.Buffer.PSHost.UI.RawUI.BackgroundColor;
+            this.BorderCell = new BufferCell(this.BorderCharacter, foreColor, backColor, 0);
+            this.PaddingCellTop = new BufferCell(this.PaddingCharacterTop, foreColor, backColor, 0);
+            this.PaddingCellRight = new BufferCell(this.PaddingCharacterRight, foreColor, backColor, 0);
+            this.PaddingCellBottom = new BufferCell(this.PaddingCharacterBottom, foreColor, backColor, 0);
+            this.PaddingCellLeft = new BufferCell(this.PaddingCharacterLeft, foreColor, backColor, 0);
+        }
+        
         public void SetHorizontalPosition(int x)
         {
             if (this.Container != null)
@@ -922,7 +814,7 @@ namespace PSCLUITools
             return text;
         }
 
-        public override List<Object> GetPSHostRawUIRepresentation()
+        public override List<BufferCellElement> GetPSHostRawUIRepresentation()
         {
             throw new NotImplementedException();
         }
@@ -1099,11 +991,121 @@ namespace PSCLUITools
             return text;
         }
         
-        public override List<Object> GetPSHostRawUIRepresentation()
+        public override List<BufferCellElement> GetPSHostRawUIRepresentation()
         {
+            var bufferCellArrays = new List<BufferCellElement>();
+            var txt = this.Text;
             // TODO Ape what New-Square.psm1 does:
             //var someElement = Host.UI.RawUI.NewBufferCellArray(width, height, this.Border.Cell);
             // TODO Ape what New-Menu does with WriteItem etc. (text content)
+            UpdatePSHostVariables();
+
+            // Top border
+            var topBorderCoordinates = new Coordinates(this.GetLeftEdgePosition(), 
+                this.GetTopEdgePosition()); // x, y
+            var topBorderRectangle = new Rectangle(this.GetLeftEdgePosition(),
+                this.GetTopEdgePosition(), this.GetRightEdgePosition(), 
+                this.GetTopEdgePosition()); // left, bottom, right, top
+            var topBorderBCACapture = this.Buffer.PSHost.UI.RawUI.GetBufferContents(topBorderRectangle);
+            var topBorderSize = new Size(this.GetWidth(), 1);
+            var topBorderBCANew = this.Buffer.PSHost.UI.RawUI.NewBufferCellArray(topBorderSize, 
+                this.BorderCell);
+            var topBorderBCE = new BufferCellElement(topBorderBCACapture, 
+                topBorderBCANew, topBorderCoordinates);
+            
+            // TODO IMPLEMENT AT LEAST SOME OF THE PSHOST STUFF IN BUFFER AND TEST BEFORE DOING ANYTHING ELSE
+            // TODO IMPLEMENT AT LEAST SOME OF THE PSHOST STUFF IN BUFFER AND TEST BEFORE DOING ANYTHING ELSE
+            // TODO IMPLEMENT AT LEAST SOME OF THE PSHOST STUFF IN BUFFER AND TEST BEFORE DOING ANYTHING ELSE
+            // TODO IMPLEMENT AT LEAST SOME OF THE PSHOST STUFF IN BUFFER AND TEST BEFORE DOING ANYTHING ELSE
+            
+            // Right border
+
+            // Bottom border
+
+            // Left border
+
+            if (this.GetHeight() == 1)
+            {
+                if (this.BorderTop)
+                    bufferCellArrays.Add(topBorderBCE);
+                else if (this.BorderBottom)
+                {
+                    // TODO Add bottom border to list
+                }
+                else if (this.PaddingTop)
+                {
+                    // TODO Add top padding to list
+                }
+                else if (this.PaddingBottom)
+                {
+                    // TODO Add bottom padding to list
+                }
+                return bufferCellArrays;
+            }
+
+            if (this.GetHeight() == 2)
+            {
+                var i = 0;
+                if (this.BorderTop)
+                {
+                    bufferCellArrays.Add(topBorderBCE);
+                    i++;
+                }
+                if (this.BorderBottom)
+                {
+                    // TODO Add bottom border to list
+                    i++;
+                }
+                if (this.PaddingTop && i < 2)
+                {
+                    // TODO Add top padding to list
+                    i++;
+                }
+                if (this.PaddingBottom && i < 2)
+                {
+                    // TODO Add bottom padding to list
+                    i++;
+                }
+                return bufferCellArrays;
+            }
+
+            if (this.GetHeight() == 3)
+            {
+                var i = 0;
+                if (this.BorderTop)
+                {
+                    bufferCellArrays.Add(topBorderBCE);
+                    i++;
+                }
+                if (this.BorderBottom)
+                {
+                    // TODO Add bottom border to list
+                    i++;
+                }
+                if (this.PaddingTop)
+                {
+                    // TODO Add top padding to list
+                    i++;
+                }
+                if (this.PaddingBottom && i < 3)
+                {
+                    // TODO Add bottom padding to list
+                    i++;
+                }
+                return bufferCellArrays;
+            }
+
+            if (this.BorderTop)
+                bufferCellArrays.Add(topBorderBCE);
+            if (this.BorderBottom)
+                // TODO Add bottom border to list
+            if (this.PaddingTop)
+                // TODO Add top padding to list
+            if (this.PaddingBottom)
+                // TODO Add bottom padding to list
+            if (this.GetHeight() == 4)
+                return bufferCellArrays;
+
             throw new NotImplementedException();
         }
     }
@@ -1396,7 +1398,7 @@ namespace PSCLUITools
             return text;
         }
         
-        public override List<Object> GetPSHostRawUIRepresentation()
+        public override List<BufferCellElement> GetPSHostRawUIRepresentation()
         {
             throw new NotImplementedException();
         }
@@ -1841,7 +1843,7 @@ namespace PSCLUITools
             return text;
         }
 
-        public override List<Object> GetPSHostRawUIRepresentation()
+        public override List<BufferCellElement> GetPSHostRawUIRepresentation()
         {
             // TODO Ape what New-Square.psm1 does
             // TODO Ape what New-Menu does with WriteItem etc. (text content)
