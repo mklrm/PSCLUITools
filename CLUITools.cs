@@ -640,12 +640,12 @@ namespace PSCLUITools
 
         public int GetBottomBorderPositionLeft()
         {
-            return this.GetLeftEdgePosition();
+            return this.GetTopBorderPositionLeft();
         }
 
         public int GetBottomBorderPositionRight()
         {
-            return this.GetRightEdgePosition() - 1;
+            return this.GetTopBorderPositionRight();
         }
         
         // Get left border positions
@@ -786,20 +786,21 @@ namespace PSCLUITools
         public int GetLeftPaddingPositionTop()
         {
             var position = this.GetTopEdgePosition();
-            if (this.BorderTop)
-                position = position += 1;
             if (this.PaddingTop)
-                position = position += 1;
+                position = this.GetTopPaddingPositionBottom();
+            else if (this.BorderTop)
+                position = this.GetTopBorderPositionBottom();
             return position;
+
         }
 
         public int GetLeftPaddingPositionBottom()
         {
             var position = this.GetBottomEdgePosition() - 1;
-            if (this.BorderBottom)
-                position = position -= 1;
             if (this.PaddingBottom)
-                position = position -= 1;
+                position = this.GetBottomPaddingPositionTop() - 1;
+            if (this.BorderBottom)
+                position = this.GetBottomBorderPositionTop() - 1;
             return position;
         }
 
@@ -834,20 +835,20 @@ namespace PSCLUITools
         public int GetRightPaddingPositionTop()
         {
             var position = this.GetTopEdgePosition();
-            if (this.BorderTop)
-                position = position += 1;
             if (this.PaddingTop)
-                position = position += 1;
+                position = this.GetTopPaddingPositionBottom();
+            else if (this.BorderTop)
+                position = this.GetTopBorderPositionBottom();
             return position;
         }
 
         public int GetRightPaddingPositionBottom()
         {
             var position = this.GetBottomEdgePosition() - 1;
-            if (this.BorderBottom)
-                position = position -= 1;
             if (this.PaddingBottom)
-                position = position -= 1;
+                position = this.GetBottomPaddingPositionTop() - 1;
+            if (this.BorderBottom)
+                position = this.GetBottomBorderPositionTop() - 1;
             return position;
         }
 
