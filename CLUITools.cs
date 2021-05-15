@@ -606,220 +606,361 @@ namespace PSCLUITools
                 this.SetHeight(y - this.GetTopEdgePosition());
         }
 
-        public int GetTopBorderPosition()
+        // Get top border positions
+        public int GetTopBorderPositionTop()
         {
             return this.GetTopEdgePosition();
         }
 
-        public int GetBottomBorderPosition()
+        public int GetTopBorderPositionBottom()
+        {
+            return this.GetTopBorderPositionTop() + 1;
+        }
+
+        public int GetTopBorderPositionLeft()
+        {
+            return this.GetLeftEdgePosition();
+        }
+
+        public int GetTopBorderPositionRight()
+        {
+            return this.GetRightEdgePosition() - 1;
+        }
+        
+        // Get bottom border positions
+        public int GetBottomBorderPositionTop()
         {
             return this.GetBottomEdgePosition() - 1;
         }
 
-        public int GetRightBorderPosition()
+        public int GetBottomBorderPositionBottom()
+        {
+            return this.GetBottomBorderPositionTop() + 1;
+        }
+
+        public int GetBottomBorderPositionLeft()
+        {
+            return this.GetLeftEdgePosition();
+        }
+
+        public int GetBottomBorderPositionRight()
         {
             return this.GetRightEdgePosition() - 1;
         }
-
-        public int GetLeftBorderPosition()
+        
+        // Get left border positions
+        public int GetLeftBorderPositionTop()
         {
-            throw new NotImplementedException();
-        }
-
-        public int GetTopPaddingPosition()
-        {
-            if (!this.BorderTop)
-                return this.GetTopBorderPosition();
-            
-            return this.GetTopBorderPosition() + 1;
-        }
-
-        public int GetBottomPaddingPosition()
-        {
-            if (!this.BorderBottom)
-                return this.GetBottomBorderPosition();
-            
-            return this.GetBottomBorderPosition() - 1;
-        }
-
-        public int GetRightPaddingPosition()
-        {
-            throw new NotImplementedException();
-        }
-
-        public int GetLeftPaddingPosition()
-        {
-            throw new NotImplementedException();
-        }
-
-        public BufferCellElement GetBorderTopBufferCellElement()
-        {
-            var topBorderCoordinates = new Coordinates(this.GetLeftEdgePosition(), 
-                this.GetTopBorderPosition()); // x, y
-            var topBorderRectangle = new Rectangle(this.GetLeftEdgePosition(),
-                this.GetTopBorderPosition(), this.GetRightEdgePosition(), 
-                this.GetTopBorderPosition()); // left, top, right, bottom
-            var topBorderBCACapture = this.Buffer.PSHost.UI.RawUI.GetBufferContents(topBorderRectangle);
-            var topBorderSize = new Size(this.GetWidth(), 1);
-            var topBorderBCANew = this.Buffer.PSHost.UI.RawUI.NewBufferCellArray(topBorderSize, 
-                this.BorderCell);
-            var topBorderBCE = new BufferCellElement(topBorderBCACapture, 
-                topBorderBCANew, topBorderCoordinates);
-            
-            return topBorderBCE;
-        }
-
-        public BufferCellElement GetBorderBottomBufferCellElement()
-        {
-            var bottomBorderCoordinates = new Coordinates(this.GetLeftEdgePosition(), 
-                this.GetBottomBorderPosition()); // x, y
-            var bottomBorderRectangle = new Rectangle(this.GetLeftEdgePosition(),
-                this.GetBottomBorderPosition(), this.GetRightEdgePosition(), 
-                this.GetBottomBorderPosition()); // left, top, right, bottom
-            var bottomBorderBCACapture = this.Buffer.PSHost.UI.RawUI.GetBufferContents(bottomBorderRectangle);
-            var bottomBorderSize = new Size(this.GetWidth(), 1);
-            var bottomBorderBCANew = this.Buffer.PSHost.UI.RawUI.NewBufferCellArray(bottomBorderSize, 
-                this.BorderCell);
-            var bottomBorderBCE = new BufferCellElement(bottomBorderBCACapture, 
-                bottomBorderBCANew, bottomBorderCoordinates);
-            
-            return bottomBorderBCE;
-        }
-
-        public BufferCellElement GetBorderLeftBufferCellElement()
-        {
-            var positionLeft = this.GetLeftEdgePosition();
-            var positionTop = this.GetTopBorderPosition();
-            var positionRight = positionLeft;
-            var positionBottom = this.GetBottomBorderPosition();
-            var height = this.GetHeight();
-
             if (this.BorderTop)
-            {
-                positionTop++;
-                height--;
-            }
-
-            if (this.BorderBottom)
-            {
-                positionBottom--;
-                height--;
-            }
-
-            var leftBorderCoordinates = new Coordinates(
-                positionLeft, positionTop); // x, y
-            var leftBorderRectangle = new Rectangle(
-                positionLeft, positionTop, positionRight, positionBottom); // left, top, right, bottom
-            var leftBorderBCACapture = this.Buffer.PSHost.UI.RawUI.GetBufferContents(leftBorderRectangle);
-            var leftBorderSize = new Size(1, height);
-            var leftBorderBCANew = this.Buffer.PSHost.UI.RawUI.NewBufferCellArray(leftBorderSize, 
-                this.BorderCell);
-            var leftBorderBCE = new BufferCellElement(leftBorderBCACapture, 
-                leftBorderBCANew, leftBorderCoordinates);
-            
-            return leftBorderBCE;
+                return this.GetTopBorderPositionBottom();
+            return this.GetTopBorderPositionTop();
         }
 
-        public BufferCellElement GetBorderRightBufferCellElement()
+        public int GetLeftBorderPositionBottom()
         {
-            var positionTop = this.GetTopBorderPosition();
-            var positionRight = this.GetRightBorderPosition();
-            var positionLeft = positionRight;
-            var positionBottom = this.GetBottomBorderPosition();
+            if (this.BorderBottom)
+                return this.GetBottomBorderPositionTop() - 1;
+            return this.GetBottomBorderPositionBottom() - 1;
+        }
+
+        public int GetLeftBorderPositionLeft()
+        {
+            return this.GetTopBorderPositionLeft();
+        }
+
+        public int GetLeftBorderPositionRight()
+        {
+            return this.GetLeftBorderPositionLeft() + 1;
+        }
+
+        public int GetLeftBorderHeight()
+        {
             var height = this.GetHeight();
-
             if (this.BorderTop)
-            {
-                positionTop++;
-                height--;
-            }
-
+                height = height - 1;
             if (this.BorderBottom)
-            {
-                positionBottom--;
-                height--;
-            }
-
-            var rightBorderCoordinates = new Coordinates(
-                positionLeft, positionTop); // x, y
-            var rightBorderRectangle = new Rectangle(
-                positionLeft, positionTop, positionRight, positionBottom); // left, top, right, bottom
-            var rightBorderBCACapture = this.Buffer.PSHost.UI.RawUI.GetBufferContents(rightBorderRectangle);
-            var rightBorderSize = new Size(1, height);
-            var rightBorderBCANew = this.Buffer.PSHost.UI.RawUI.NewBufferCellArray(rightBorderSize, 
-                this.BorderCell);
-            var rightBorderBCE = new BufferCellElement(rightBorderBCACapture, 
-                rightBorderBCANew, rightBorderCoordinates);
-            
-            return rightBorderBCE;
+                height = height - 1;
+            return height;
         }
 
-        public BufferCellElement GetPaddingTopBufferCellElement()
+        // Get right border positions
+        public int GetRightBorderPositionTop()
         {
-            var positionLeft = this.GetLeftEdgePosition();
-            var positionTop = this.GetTopPaddingPosition();
-            var positionRight = this.GetRightEdgePosition();
-            var positionBottom = positionTop;
-            var width = this.GetWidth();
-
-            if (this.BorderLeft)
-            {
-                positionLeft++;
-                width--;
-            }
-
-            if (this.BorderRight)
-            {
-                positionRight--;
-                width--;
-            }
-
-            var topPaddingCoordinates = new Coordinates(
-                positionLeft, positionTop); // x, y
-            var topPaddingRectangle = new Rectangle(
-                positionLeft, positionTop, positionRight, positionBottom); // left, top, right, bottom
-            var topPaddingBCACapture = this.Buffer.PSHost.UI.RawUI.GetBufferContents(topPaddingRectangle);
-            var topPaddingSize = new Size(width, 1);
-            var topPaddingBCANew = this.Buffer.PSHost.UI.RawUI.NewBufferCellArray(topPaddingSize, 
-                this.PaddingCellTop);
-            var topPaddingBCE = new BufferCellElement(topPaddingBCACapture, 
-                topPaddingBCANew, topPaddingCoordinates);
-            
-            return topPaddingBCE;
+            if (this.BorderTop)
+                return this.GetTopBorderPositionBottom();
+            return this.GetTopBorderPositionTop();
         }
 
-        public BufferCellElement GetPaddingBottomBufferCellElement()
+        public int GetRightBorderPositionBottom()
         {
-            var positionLeft = this.GetLeftEdgePosition();
-            var positionRight = this.GetRightEdgePosition();
-            var positionBottom = this.GetBottomPaddingPosition();
-            var positionTop = positionBottom;
-            var width = this.GetWidth();
+            if (this.BorderBottom)
+                return this.GetBottomBorderPositionTop() - 1;
+            return this.GetBottomBorderPositionBottom() - 1;
+        }
 
+        public int GetRightBorderPositionLeft()
+        {
+            return this.GetTopBorderPositionRight();
+        }
+
+        public int GetRightBorderPositionRight()
+        {
+            return this.GetRightBorderPositionLeft() + 1;
+        }
+
+        public int GetRightBorderHeight()
+        {
+            return this.GetLeftBorderHeight();
+        }
+
+        // Get top padding positions
+        public int GetTopPaddingPositionTop()
+        {
+            if (this.BorderTop)
+                return this.GetTopBorderPositionTop() + 1;
+            return this.GetTopBorderPositionTop();
+        }
+
+        public int GetTopPaddingPositionBottom()
+        {
+            return this.GetTopPaddingPositionTop() + 1;
+        }
+
+        public int GetTopPaddingPositionLeft()
+        {
             if (this.BorderLeft)
-            {
-                positionLeft++;
-                width--;
-            }
+                return this.GetTopBorderPositionLeft() + 1;
+            return this.GetTopBorderPositionLeft();
+        }
 
+        public int GetTopPaddingPositionRight()
+        {
             if (this.BorderRight)
+                return this.GetTopBorderPositionRight() - 1;
+            return this.GetTopBorderPositionRight();
+        }
+
+        public int GetTopPaddingWidth()
+        {
+            var width = this.GetWidth();
+            if (this.BorderLeft)
+                width = width - 1;
+            if (this.BorderRight)
+                width = width - 1;
+            return width;
+        }
+        
+        // Get bottom padding positions
+        public int GetBottomPaddingPositionTop()
+        {
+            if (this.BorderBottom)
+                return this.GetBottomBorderPositionTop() - 1;
+            return this.GetBottomBorderPositionTop();
+        }
+
+        public int GetBottomPaddingPositionBottom()
+        {
+            return this.GetBottomPaddingPositionTop() + 1;
+        }
+
+        public int GetBottomPaddingPositionLeft()
+        {
+            if (this.BorderLeft)
+                return this.GetTopBorderPositionLeft() + 1;
+            return this.GetTopBorderPositionLeft();
+        }
+
+        public int GetBottomPaddingPositionRight()
+        {
+            if (this.BorderRight)
+                return this.GetBottomBorderPositionRight() - 1;
+            return this.GetBottomBorderPositionRight();
+        }
+        
+        public int GetBottomPaddingWidth()
+        {
+            return this.GetTopPaddingWidth();
+        }
+        
+        // Get left padding positions
+        public int GetLeftPaddingPositionTop()
+        {
+            var position = this.GetTopEdgePosition();
+            if (this.BorderTop)
+                position = position += 1;
+            if (this.PaddingTop)
+                position = position += 1;
+            return position;
+        }
+
+        public int GetLeftPaddingPositionBottom()
+        {
+            var position = this.GetBottomEdgePosition() - 1;
+            if (this.BorderBottom)
+                position = position -= 1;
+            if (this.PaddingBottom)
+                position = position -= 1;
+            return position;
+        }
+
+        public int GetLeftPaddingPositionLeft()
+        {
+            var position = this.GetLeftEdgePosition();
+            if (this.BorderLeft)
+                position = position += 1;
+            return position;
+        }
+
+        public int GetLeftPaddingPositionRight()
+        {
+            return this.GetLeftPaddingPositionLeft() + 1;
+        }
+
+        public int GetLeftPaddingHeight()
+        {
+            var height = this.GetHeight();
+            if (this.BorderTop)
+                height = height - 1;
+            if (this.BorderBottom)
+                height = height - 1;
+            if (this.PaddingTop)
+                height = height - 1;
+            if (this.PaddingBottom)
+                height = height - 1;
+            return height;
+        }
+
+        // Get right padding positions
+        public int GetRightPaddingPositionTop()
+        {
+            var position = this.GetTopEdgePosition();
+            if (this.BorderTop)
+                position = position += 1;
+            if (this.PaddingTop)
+                position = position += 1;
+            return position;
+        }
+
+        public int GetRightPaddingPositionBottom()
+        {
+            var position = this.GetBottomEdgePosition() - 1;
+            if (this.BorderBottom)
+                position = position -= 1;
+            if (this.PaddingBottom)
+                position = position -= 1;
+            return position;
+        }
+
+        public int GetRightPaddingPositionLeft()
+        {
+            var position = this.GetRightEdgePosition() - 1;
+            if (this.BorderRight)
+                position = position -= 1;
+            return position;
+        }
+
+        public int GetRightPaddingPositionRight()
+        {
+            return this.GetRightPaddingPositionLeft() + 1;
+        }
+
+        public int GetRightPaddingHeight()
+        {
+            return this.GetLeftPaddingHeight();
+        }
+
+        public BufferCellElement GetBufferCellElement(string element)
+        {
+            var positionTop = 0; 
+            var positionBottom = 0;
+            var positionLeft = 0;
+            var positionRight = 0;
+            var width = 1;
+            var height = 1;
+            var cell = this.BorderCell;
+
+            if (element == "borderTop")
             {
-                positionRight--;
-                width--;
+                positionTop = this.GetTopBorderPositionTop();
+                positionBottom = this.GetTopBorderPositionBottom();
+                positionLeft = this.GetTopBorderPositionLeft();
+                positionRight = this.GetTopBorderPositionRight();
+                width = this.GetWidth();
+                cell = this.BorderCell;
+            }
+            else if (element == "borderBottom")
+            {
+                positionTop = this.GetBottomBorderPositionTop();
+                positionBottom = this.GetBottomBorderPositionBottom();
+                positionLeft = this.GetBottomBorderPositionLeft();
+                positionRight = this.GetBottomBorderPositionRight();
+                width = this.GetWidth();
+                cell = this.BorderCell;
+            }
+            else if (element == "borderLeft")
+            {
+                positionTop = this.GetLeftBorderPositionTop();
+                positionBottom = this.GetLeftBorderPositionBottom();
+                positionLeft = this.GetLeftBorderPositionLeft();
+                positionRight = this.GetLeftBorderPositionRight();
+                height = this.GetLeftBorderHeight();
+                cell = this.BorderCell;
+            }
+            else if (element == "borderRight")
+            {
+                positionTop = this.GetRightBorderPositionTop();
+                positionBottom = this.GetRightBorderPositionBottom();
+                positionLeft = this.GetRightBorderPositionLeft();
+                positionRight = this.GetRightBorderPositionRight();
+                height = this.GetRightBorderHeight();
+                cell = this.BorderCell;
+            }
+            else if (element == "paddingTop")
+            {
+                positionTop = this.GetTopPaddingPositionTop();
+                positionBottom = this.GetTopPaddingPositionBottom();
+                positionLeft = this.GetTopPaddingPositionLeft();
+                positionRight = this.GetTopPaddingPositionRight();
+                width = this.GetTopPaddingWidth();
+                cell = this.PaddingCellTop;
+            }
+            else if (element == "paddingBottom")
+            {
+                positionTop = this.GetBottomPaddingPositionTop();
+                positionBottom = this.GetBottomPaddingPositionBottom();
+                positionLeft = this.GetBottomPaddingPositionLeft();
+                positionRight = this.GetBottomPaddingPositionRight();
+                width = this.GetTopPaddingWidth();
+                cell = this.PaddingCellBottom;
+            }
+            else if (element == "paddingLeft")
+            {
+                positionTop = this.GetLeftPaddingPositionTop();
+                positionBottom = this.GetLeftPaddingPositionBottom();
+                positionLeft = this.GetLeftPaddingPositionLeft();
+                positionRight = this.GetLeftPaddingPositionRight();
+                height = this.GetLeftPaddingHeight();
+                cell = this.PaddingCellLeft;
+            }
+            else if (element == "paddingRight")
+            {
+                positionTop = this.GetRightPaddingPositionTop();
+                positionBottom = this.GetRightPaddingPositionBottom();
+                positionLeft = this.GetRightPaddingPositionLeft();
+                positionRight = this.GetRightPaddingPositionRight();
+                height = this.GetRightPaddingHeight();
+                cell = this.PaddingCellRight;
             }
 
-            var bottomPaddingCoordinates = new Coordinates(
-                positionLeft, positionTop); // x, y
-            var bottomPaddingRectangle = new Rectangle(
+            var coordinates = new Coordinates(positionLeft, positionTop); // x, y
+            var rectangle = new Rectangle(
                 positionLeft, positionTop, positionRight, positionBottom); // left, top, right, bottom
-            var bottomPaddingBCACapture = this.Buffer.PSHost.UI.RawUI.GetBufferContents(bottomPaddingRectangle);
-            var bottomPaddingSize = new Size(width, 1);
-            var bottomPaddingBCANew = this.Buffer.PSHost.UI.RawUI.NewBufferCellArray(bottomPaddingSize, 
-                this.PaddingCellBottom);
-            var bottomPaddingBCE = new BufferCellElement(bottomPaddingBCACapture, 
-                bottomPaddingBCANew, bottomPaddingCoordinates);
+            var bufferContent = this.Buffer.PSHost.UI.RawUI.GetBufferContents(rectangle);
+            var size = new Size(width, height);
+            var bufferContentNew = this.Buffer.PSHost.UI.RawUI.NewBufferCellArray(size, cell);
+            var bufferCellElement = new BufferCellElement(bufferContent, bufferContentNew, coordinates);
             
-            return bottomPaddingBCE;
+            return bufferCellElement;
         }
     }
 
@@ -1237,26 +1378,28 @@ namespace PSCLUITools
             }
 
             // Top border
-            var topBorderBCE = this.GetBorderTopBufferCellElement();            
+            var topBorderBCE = this.GetBufferCellElement("borderTop");            
 
             // Bottom border
-            var bottomBorderBCE = this.GetBorderBottomBufferCellElement();
+            var bottomBorderBCE = this.GetBufferCellElement("borderBottom");
 
             // Left border
-            var leftBorderBCE = this.GetBorderLeftBufferCellElement();
+            var leftBorderBCE = this.GetBufferCellElement("borderLeft");
 
             // Right border
-            var rightBorderBCE = this.GetBorderRightBufferCellElement();
+            var rightBorderBCE = this.GetBufferCellElement("borderRight");
 
             // Top padding
-            var topPaddingBCE = this.GetPaddingTopBufferCellElement();
+            var topPaddingBCE = this.GetBufferCellElement("paddingTop");
 
             // Bottom padding
-            var bottomPaddingBCE = this.GetPaddingBottomBufferCellElement();
+            var bottomPaddingBCE = this.GetBufferCellElement("paddingBottom");
 
             // Left padding
+            var leftPaddingBCE = this.GetBufferCellElement("paddingLeft");
 
             // Right padding
+            var rightPaddingBCE = this.GetBufferCellElement("paddingRight");
 
             if (this.BorderTop && !IsHorizontalListFull())
                 bufferCellElementHorizontal.Add(topBorderBCE);
@@ -1274,10 +1417,10 @@ namespace PSCLUITools
                 bufferCellElementVertical.Add(leftBorderBCE);
             if (this.BorderRight && !IsVerticalListFull())
                 bufferCellElementVertical.Add(rightBorderBCE);
-            //if (this.PaddingLeft && !IsVerticalListFull())
-                //bufferCellElementVertical.Add(topPaddingBCE);
-            //if (this.PaddingRight && !IsVerticalListFull())
-                //bufferCellElementVertical.Add(bottomPaddingBCE);
+            if (this.PaddingLeft && !IsVerticalListFull())
+                bufferCellElementVertical.Add(leftPaddingBCE);
+            if (this.PaddingRight && !IsVerticalListFull())
+                bufferCellElementVertical.Add(rightPaddingBCE);
             
             foreach (BufferCellElement bce in bufferCellElementVertical)
                 bufferCellElement.Add(bce);

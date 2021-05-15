@@ -64,6 +64,8 @@ namespace PSCLUITools
             label.AddPadding("bottom");
             label.AddBorder("left");
             label.AddBorder("right");
+            label.AddPadding("left");
+            label.AddPadding("right");
             container.AddControl(label);
 
             //var buffer = new Buffer();
