@@ -53,14 +53,18 @@ namespace PSCLUITools
             //var coordinates = new Coordinates(2,2);
             //Host.UI.RawUI.SetBufferContents(coordinates, bufferCellArray);
 
-            var size = new Size(2, 2);
-            var bufferCell = new BufferCell('#', ConsoleColor.Red, ConsoleColor.Black, 0);
-            var bufferCellArray = Host.UI.RawUI.NewBufferCellArray(size, bufferCell);
-            Console.WriteLine(bufferCellArray.GetType());
-            //var coordinates = new Coordinates(2,2);
-            //Host.UI.RawUI.SetBufferContents(coordinates, bufferCellArray);
-
             var buffer = new Buffer(Host);
+            var container = new Container(0, 0, Console.WindowWidth, Console.WindowHeight);
+            buffer.AddControl(container);
+
+            var label = new Label(0, 0, "Listing");
+            label.AddBorder("top");
+            label.AddBorder("bottom");
+            label.AddPadding("top");
+            label.AddPadding("bottom");
+            label.AddBorder("left");
+            label.AddBorder("right");
+            container.AddControl(label);
 
             //var buffer = new Buffer();
             //var container = new Container(0, 0, Console.WindowWidth, Console.WindowHeight);
@@ -78,14 +82,14 @@ namespace PSCLUITools
             //container.AddControl(label);
             //container.AddControl(menu);
 
-            //var x = Console.WindowWidth / 2 - container.GetWidth() / 2;
-            //container.SetHorizontalPosition(x);
+            var x = Console.WindowWidth / 2 - container.GetWidth() / 2;
+            container.SetHorizontalPosition(x);
 
-            //var y = Console.WindowHeight / 2 - container.GetHeight() / 2;
-            //container.SetVerticalPosition(y);
+            var y = Console.WindowHeight / 2 - container.GetHeight() / 2;
+            container.SetVerticalPosition(y);
             
-            //buffer.UpdateAll();
-            //buffer.Write();
+            buffer.UpdateAll();
+            buffer.Write();
             
             //WriteObject(menu.ReadKey());
         }
