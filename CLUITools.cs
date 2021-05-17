@@ -17,7 +17,8 @@ namespace PSCLUITools
         internal PSHost PSHost { get; set;}
 
         protected static char[,] screenBufferArray = new char[width,height];
-        protected List<BufferCellElement> bufferCellArrays = new List<BufferCellElement>();
+        internal List<BufferCellElement> bufferCellElements = new List<BufferCellElement>();
+        protected List<Control> BufferedControls = new List<Control>();
 
         public Buffer()
         {
@@ -64,9 +65,7 @@ namespace PSCLUITools
                 {
                     var container = (Container) control;
                     foreach (Control childControl in container.controls)
-                    {
                         this.Update(childControl);
-                    }
                 }
                 else
                 {
@@ -86,8 +85,12 @@ namespace PSCLUITools
                 }
                 else
                 {
-                    foreach (BufferCellElement bce in control.GetPSHostRawUIRepresentation())
-                        this.bufferCellArrays.Add(bce);
+                    if (!this.BufferedControls.Contains(control))
+                    {
+                        foreach (BufferCellElement bce in control.GetPSHostRawUIRepresentation())
+                            this.bufferCellElements.Add(bce);
+                        this.BufferedControls.Add(control);
+                    }
                 }
             }
         }
@@ -128,28 +131,57 @@ namespace PSCLUITools
             }
             else
             {
-                foreach (BufferCellElement bce in this.bufferCellArrays)
+                foreach (BufferCellElement bce in this.bufferCellElements)
                 {
-                    this.PSHost.UI.RawUI.SetBufferContents(bce.Coordinates, bce.NewBufferCellArray);
+                    // Only write changed Buffer Cell Elements
+                    if (bce.Changed)
+                    {
+                        bce.Changed = false;
+                        this.PSHost.UI.RawUI.SetBufferContents(bce.Coordinates, bce.NewBufferCellArray);
+                    }
                 }
             }
         }
         
-        public void Clear()
+        internal void Clear()
         {
-            throw new NotImplementedException();
+            this.BufferedControls = new List<Control>();
+            this.bufferCellElements = new List<BufferCellElement>();
         }
 
-        public void AddControl(Control control)
+        public void Add(Control control)
         {
             control.Buffer = this;
             this.container.controls.Add(control);
         }
 
-        public void RemoveControl(Control control)
+        public void Remove(Control control)
         {
             control.Buffer = this;
             this.container.controls.Remove(control);
+        }
+
+        public void RemoveFromBuffer(Control control)
+        {
+            // TODO Restore buffer
+            for (int i = 0; i < this.bufferCellElements.Count; i++)
+            {
+                BufferCellElement bce = this.bufferCellElements[i];
+                if (bce.Control == control)
+                    bufferCellElements.Remove(bce);
+            }
+
+            this.BufferedControls.Remove(control);
+        }
+
+        public BufferCellElement GetBufferCellElement(Object searchObject)
+        {
+            foreach (BufferCellElement bce in bufferCellElements)
+            {
+                if (bce.Item == searchObject)
+                    return bce;
+            }
+            return null;
         }
     }
 
@@ -158,6 +190,9 @@ namespace PSCLUITools
         internal BufferCell[,] CapturedBufferCellArray { get; set; }
         internal BufferCell[,] NewBufferCellArray { get; set; }
         internal Coordinates Coordinates { get; set;}
+        internal Control Control { get; set; }
+        internal Object Item { get; set; }
+        internal bool Changed { get; set; } = true;
         
         public BufferCellElement(BufferCell[,] capturedBufferCellArray, 
             BufferCell[,] newBufferCellArray, Coordinates coordinates)
@@ -165,6 +200,34 @@ namespace PSCLUITools
             this.CapturedBufferCellArray = capturedBufferCellArray;
             this.NewBufferCellArray = newBufferCellArray;
             this.Coordinates = coordinates;
+        }
+
+        public BufferCellElement(BufferCell[,] capturedBufferCellArray, 
+            BufferCell[,] newBufferCellArray, Coordinates coordinates, Control control)
+        {
+            this.CapturedBufferCellArray = capturedBufferCellArray;
+            this.NewBufferCellArray = newBufferCellArray;
+            this.Coordinates = coordinates;
+            this.Control = control;
+        }
+
+        public BufferCellElement(BufferCell[,] capturedBufferCellArray, 
+            BufferCell[,] newBufferCellArray, Coordinates coordinates, Object obj)
+        {
+            this.CapturedBufferCellArray = capturedBufferCellArray;
+            this.NewBufferCellArray = newBufferCellArray;
+            this.Coordinates = coordinates;
+            this.Item = obj;
+        }
+
+        public BufferCellElement(BufferCell[,] capturedBufferCellArray, 
+            BufferCell[,] newBufferCellArray, Coordinates coordinates, Control control, Object obj)
+        {
+            this.CapturedBufferCellArray = capturedBufferCellArray;
+            this.NewBufferCellArray = newBufferCellArray;
+            this.Coordinates = coordinates;
+            this.Control = control;
+            this.Item = obj;
         }
     }
 
@@ -193,9 +256,14 @@ namespace PSCLUITools
         public BufferCell PaddingCellBottom { get; set; } = new BufferCell(' ', 0, 0, 0);
         public BufferCell PaddingCellLeft { get; set; } = new BufferCell(' ', 0, 0, 0);
         public char FillCharacter { get; set; } = '`';
+        public BufferCell FillCell { get; set; } = new BufferCell(' ', 0, 0, 0);
         public char SelectCharacter { get; set; } = '+';
         public char ActiveCharacter { get; set; } = '>';
         public char SelectedAndActiveCharacter { get; set; } = '*';
+        public ConsoleColor BackgroundColor { get; set; }
+        public ConsoleColor ForegroundColor { get; set; }
+
+        // Controls
         public const string KeyUp0  = "UpArrow";
         public const string KeyUp1  = "K";
         public const string KeyRight0  = "RightArrow";
@@ -212,11 +280,12 @@ namespace PSCLUITools
         public const string KeyFind = "Oem2";
         public const string KeyFindNext = "N";
         public const string KeyFindPrevious = "P";
+        public const string KeyTest = "T";
 
         // Returns a text representation of the control, including borders and whatever else stylings
         public abstract List<string> GetTextRepresentation();
 
-        // Returns a layered representation of the control
+        // Returns a PSHost representation of the control
         public abstract List<BufferCellElement> GetPSHostRawUIRepresentation();
 
         // A Container that contains this Control
@@ -228,16 +297,22 @@ namespace PSCLUITools
         //      horizontally for now, maybe even remove any direct way of sizing and positioning of other 
         //      types of Control
 
-
         public void UpdatePSHostVariables()
         {
-            var backColor = this.Buffer.PSHost.UI.RawUI.ForegroundColor;
-            var foreColor = this.Buffer.PSHost.UI.RawUI.BackgroundColor;
-            this.BorderCell = new BufferCell(this.BorderCharacter, foreColor, backColor, 0);
-            this.PaddingCellTop = new BufferCell(this.PaddingCharacterTop, foreColor, backColor, 0);
-            this.PaddingCellRight = new BufferCell(this.PaddingCharacterRight, foreColor, backColor, 0);
-            this.PaddingCellBottom = new BufferCell(this.PaddingCharacterBottom, foreColor, backColor, 0);
-            this.PaddingCellLeft = new BufferCell(this.PaddingCharacterLeft, foreColor, backColor, 0);
+            this.BackgroundColor = this.Buffer.PSHost.UI.RawUI.ForegroundColor;
+            this.ForegroundColor = this.Buffer.PSHost.UI.RawUI.BackgroundColor;
+            this.BorderCell = new BufferCell(this.BorderCharacter, 
+                this.ForegroundColor, this.BackgroundColor, 0);
+            this.PaddingCellTop = new BufferCell(this.PaddingCharacterTop, 
+                this.ForegroundColor, this.BackgroundColor, 0);
+            this.PaddingCellRight = new BufferCell(this.PaddingCharacterRight, 
+                this.ForegroundColor, this.BackgroundColor, 0);
+            this.PaddingCellBottom = new BufferCell(this.PaddingCharacterBottom, 
+                this.ForegroundColor, this.BackgroundColor, 0);
+            this.PaddingCellLeft = new BufferCell(this.PaddingCharacterLeft, 
+                this.ForegroundColor, this.BackgroundColor, 0);
+            this.FillCell = new BufferCell(this.FillCharacter, 
+                this.ForegroundColor, this.BackgroundColor, 0);
         }
         
         public void SetHorizontalPosition(int x)
@@ -870,7 +945,82 @@ namespace PSCLUITools
             return this.GetLeftPaddingHeight();
         }
 
-        public BufferCellElement GetBufferCellElement(string element)
+        // Get item positions
+        public int GetItemPositionTop(int itemNumber = 0)
+        {
+            var position = this.GetTopEdgePosition();
+            if (this.PaddingTop)
+                position = this.GetTopPaddingPositionBottom();
+            else if (this.BorderTop)
+                position = this.GetTopBorderPositionBottom();
+            position += itemNumber;
+            return position;
+        }
+
+        public int GetItemPositionBottom(int itemNumber = 0)
+        {
+            return this.GetItemPositionTop(itemNumber) + 1;
+        }
+
+        public int GetItemPositionLeft()
+        {
+            var position = this.GetLeftEdgePosition();
+            if (this.PaddingLeft)
+                position = this.GetLeftPaddingPositionRight();
+            else if (this.BorderLeft)
+                position = this.GetLeftBorderPositionRight();
+            return position;
+        }
+
+        public int GetItemPositionRight()
+        {
+            var position = this.GetRightEdgePosition() - 1;
+            if (this.PaddingRight)
+                position = this.GetRightPaddingPositionLeft() - 1;
+            else if (this.PaddingLeft)
+                position = this.GetRightPaddingPositionLeft() - 1;
+            return position;
+        }
+
+        public int GetItemWidth()
+        {
+            var width = this.GetWidth();
+            if (this.BorderLeft)
+                width = width - 1;
+            if (this.BorderRight)
+                width = width - 1;
+            if (this.PaddingLeft)
+                width = width - 1;
+            if (this.PaddingRight)
+                width = width - 1;
+            return width;
+        }
+
+        public int GetItemHorizontalSpace()
+        {
+            var textHorizontalSpace = this.GetWidth();
+
+            if (this.BorderRight)
+                textHorizontalSpace--;
+
+            if (this.BorderLeft)
+                textHorizontalSpace--;
+            
+            if (this.PaddingRight)
+                textHorizontalSpace--;
+
+            if (this.PaddingLeft)
+                textHorizontalSpace--;
+
+            if (textHorizontalSpace < 0)
+                textHorizontalSpace = 0;
+            
+            return textHorizontalSpace;
+        }
+
+        public BufferCellElement NewBufferCellElement(string element, List<string> text = null, 
+                                                        int itemNumber = 0, Control control = null, 
+                                                        Object obj = null)
         {
             var positionTop = 0; 
             var positionBottom = 0;
@@ -952,6 +1102,15 @@ namespace PSCLUITools
                 height = this.GetRightPaddingHeight();
                 cell = this.PaddingCellRight;
             }
+            else if (element == "item")
+            {
+                positionTop = this.GetItemPositionTop(itemNumber);
+                positionBottom = this.GetItemPositionBottom(itemNumber);
+                positionLeft = this.GetItemPositionLeft();
+                positionRight = this.GetItemPositionRight();
+                width = this.GetItemWidth();
+                cell = this.PaddingCellBottom;
+            }
 
             var coordinates = new Coordinates(positionLeft, positionTop); // x, y
             var rectangle = new Rectangle(
@@ -959,9 +1118,102 @@ namespace PSCLUITools
             var bufferContent = this.Buffer.PSHost.UI.RawUI.GetBufferContents(rectangle);
             var size = new Size(width, height);
             var bufferContentNew = this.Buffer.PSHost.UI.RawUI.NewBufferCellArray(size, cell);
-            var bufferCellElement = new BufferCellElement(bufferContent, bufferContentNew, coordinates);
+            var bufferCellElement = new BufferCellElement(bufferContent, bufferContentNew, 
+                                                            coordinates, control);
+            if (element == "item")
+            {
+                bufferContentNew = this.Buffer.PSHost.UI.RawUI.NewBufferCellArray(
+                    text.ToArray(), this.ForegroundColor, this.BackgroundColor);
+                bufferCellElement = new BufferCellElement(
+                    bufferContent, bufferContentNew, coordinates, control, obj);
+            }
             
             return bufferCellElement;
+        }
+
+        protected List<BufferCellElement> GetPSHostRawUIBorderRepresentation()
+        {
+            var bufferCellElement = new List<BufferCellElement>();
+            var bufferCellElementHorizontal = new List<BufferCellElement>();
+            var bufferCellElementVertical = new List<BufferCellElement>();
+
+            bool IsHorizontalListFull()
+            {
+                if (bufferCellElementHorizontal.Count >= this.GetHeight())
+                    return true;
+                return false;
+            }
+
+            bool IsVerticalListFull()
+            {
+                if (bufferCellElementVertical.Count >= this.GetWidth())
+                    return true;
+                return false;
+            }
+
+            // Top border
+            var topBorderBCE = this.NewBufferCellElement("borderTop", control: this);            
+
+            // Bottom border
+            var bottomBorderBCE = this.NewBufferCellElement("borderBottom", control: this);
+
+            // Left border
+            var leftBorderBCE = this.NewBufferCellElement("borderLeft", control: this);
+
+            // Right border
+            var rightBorderBCE = this.NewBufferCellElement("borderRight", control: this);
+
+            // Top padding
+            var topPaddingBCE = this.NewBufferCellElement("paddingTop", control: this);
+
+            // Bottom padding
+            var bottomPaddingBCE = this.NewBufferCellElement("paddingBottom", control: this);
+
+            // Left padding
+            var leftPaddingBCE = this.NewBufferCellElement("paddingLeft", control: this);
+
+            // Right padding
+            var rightPaddingBCE = this.NewBufferCellElement("paddingRight", control: this);
+
+            if (this.BorderTop && !IsHorizontalListFull())
+                bufferCellElementHorizontal.Add(topBorderBCE);
+            if (this.BorderBottom && !IsHorizontalListFull())
+                bufferCellElementHorizontal.Add(bottomBorderBCE);
+            if (this.PaddingTop && !IsHorizontalListFull())
+                bufferCellElementHorizontal.Add(topPaddingBCE);
+            if (this.PaddingBottom && !IsHorizontalListFull())
+                bufferCellElementHorizontal.Add(bottomPaddingBCE);
+            
+            foreach (BufferCellElement bce in bufferCellElementHorizontal)
+                bufferCellElement.Add(bce);
+
+            if (this.BorderLeft && !IsVerticalListFull())
+                bufferCellElementVertical.Add(leftBorderBCE);
+            if (this.BorderRight && !IsVerticalListFull())
+                bufferCellElementVertical.Add(rightBorderBCE);
+            if (this.PaddingLeft && !IsVerticalListFull())
+                bufferCellElementVertical.Add(leftPaddingBCE);
+            if (this.PaddingRight && !IsVerticalListFull())
+                bufferCellElementVertical.Add(rightPaddingBCE);
+            
+            foreach (BufferCellElement bce in bufferCellElementVertical)
+                bufferCellElement.Add(bce);
+            
+            return bufferCellElement;
+        }
+
+        internal void SetObjectBufferCellElement(Object findItem, ConsoleColor foregroundColor, 
+                                            ConsoleColor backgroundColor)
+        {
+            var bce = this.Buffer.GetBufferCellElement(findItem);
+            if (bce != null)
+            {
+                List<string> text = new List<string>();
+                text.Add(findItem.ToString());
+                bce.NewBufferCellArray = this.Buffer.PSHost.UI.RawUI.NewBufferCellArray(
+                    text.ToArray(), foregroundColor, backgroundColor);
+                bce.Changed = true;
+            }
         }
     }
 
@@ -1047,10 +1299,6 @@ namespace PSCLUITools
 
             if (control.GetBottomEdgePosition() > this.GetBottomEdgePosition())
                 control.SetBottomEdgePosition(this.GetBottomEdgePosition());
-
-            if (control is Menu)
-                ((Menu) control).SetMiddleMenuItemActive(); // TODO Find out how to cast as Menu at 
-                                                            //      the beginning of the method
 
             // TODO control.Container becomes inaccessible unless I make it public, this is not good.
             //      There's an explanation over yonder:
@@ -1214,23 +1462,8 @@ namespace PSCLUITools
             if (count < 0)
                 count = 0;
             var emptyLine = new String(this.FillCharacter, count);
-            var textHorizontalSpace = this.GetWidth();
+            var textHorizontalSpace = this.GetItemHorizontalSpace();
 
-            if (this.BorderRight)
-                textHorizontalSpace--;
-
-            if (this.BorderLeft)
-                textHorizontalSpace--;
-            
-            if (this.PaddingRight)
-                textHorizontalSpace--;
-
-            if (this.PaddingLeft)
-                textHorizontalSpace--;
-
-            if (textHorizontalSpace < 0)
-                textHorizontalSpace = 0;
-            
             if (this.GetWidth() == 0 || this.GetHeight() == 0)
             {
                 text.Add("");
@@ -1357,74 +1590,40 @@ namespace PSCLUITools
         
         public override List<BufferCellElement> GetPSHostRawUIRepresentation()
         {
-            var txt = this.Text;
+            List<string> content = new List<string>();
+            content.Add(this.Text);
+
             UpdatePSHostVariables();
 
             var bufferCellElement = new List<BufferCellElement>();
-            var bufferCellElementHorizontal = new List<BufferCellElement>();
-            var bufferCellElementVertical = new List<BufferCellElement>();
-
-            bool IsHorizontalListFull()
-            {
-                if (bufferCellElementHorizontal.Count >= this.GetHeight())
-                    return true;
-                return false;
-            }
-
-            bool IsVerticalListFull()
-            {
-                if (bufferCellElementVertical.Count >= this.GetWidth())
-                    return true;
-                return false;
-            }
-
-            // Top border
-            var topBorderBCE = this.GetBufferCellElement("borderTop");            
-
-            // Bottom border
-            var bottomBorderBCE = this.GetBufferCellElement("borderBottom");
-
-            // Left border
-            var leftBorderBCE = this.GetBufferCellElement("borderLeft");
-
-            // Right border
-            var rightBorderBCE = this.GetBufferCellElement("borderRight");
-
-            // Top padding
-            var topPaddingBCE = this.GetBufferCellElement("paddingTop");
-
-            // Bottom padding
-            var bottomPaddingBCE = this.GetBufferCellElement("paddingBottom");
-
-            // Left padding
-            var leftPaddingBCE = this.GetBufferCellElement("paddingLeft");
-
-            // Right padding
-            var rightPaddingBCE = this.GetBufferCellElement("paddingRight");
-
-            if (this.BorderTop && !IsHorizontalListFull())
-                bufferCellElementHorizontal.Add(topBorderBCE);
-            if (this.BorderBottom && !IsHorizontalListFull())
-                bufferCellElementHorizontal.Add(bottomBorderBCE);
-            if (this.PaddingTop && !IsHorizontalListFull())
-                bufferCellElementHorizontal.Add(topPaddingBCE);
-            if (this.PaddingBottom && !IsHorizontalListFull())
-                bufferCellElementHorizontal.Add(bottomPaddingBCE);
-            
-            foreach (BufferCellElement bce in bufferCellElementHorizontal)
+            foreach (BufferCellElement bce in this.GetPSHostRawUIBorderRepresentation())
                 bufferCellElement.Add(bce);
+            var numberOfUsedContentRows = 0;
 
-            if (this.BorderLeft && !IsVerticalListFull())
-                bufferCellElementVertical.Add(leftBorderBCE);
-            if (this.BorderRight && !IsVerticalListFull())
-                bufferCellElementVertical.Add(rightBorderBCE);
-            if (this.PaddingLeft && !IsVerticalListFull())
-                bufferCellElementVertical.Add(leftPaddingBCE);
-            if (this.PaddingRight && !IsVerticalListFull())
-                bufferCellElementVertical.Add(rightPaddingBCE);
+            int GetNumberOfAvailableContentRows()
+            {
+                var rows = this.GetHeight();
+                rows -= numberOfUsedContentRows;
+                if (this.BorderTop)
+                    rows = rows - 1;
+                if (this.BorderBottom)
+                    rows = rows - 1;
+                if (this.PaddingTop)
+                    rows = rows - 1;
+                if (this.PaddingBottom)
+                    rows = rows - 1;
+                return rows;
+            }
             
-            foreach (BufferCellElement bce in bufferCellElementVertical)
-                bufferCellElement.Add(bce);
+            if (GetNumberOfAvailableContentRows() == 1)
+                bufferCellElement.Add(NewBufferCellElement("item", content));
+            else if (GetNumberOfAvailableContentRows() > 1)
+            {
+                string spaces = new String(this.FillCharacter, this.Text.Length);
+                for (int i = 1; i < GetNumberOfAvailableContentRows(); i++)
+                    content.Add(spaces);
+                bufferCellElement.Add(NewBufferCellElement("item", content));
+            }
 
             return bufferCellElement;
         }
@@ -1577,23 +1776,8 @@ namespace PSCLUITools
             if (count < 0)
                 count = 0;
             var emptyLine = new String(this.FillCharacter, count);
-            var textHorizontalSpace = this.GetWidth();
+            var textHorizontalSpace = this.GetItemHorizontalSpace();
 
-            if (this.BorderRight)
-                textHorizontalSpace--;
-
-            if (this.BorderLeft)
-                textHorizontalSpace--;
-            
-            if (this.PaddingRight)
-                textHorizontalSpace--;
-
-            if (this.PaddingLeft)
-                textHorizontalSpace--;
-
-            if (textHorizontalSpace < 0)
-                textHorizontalSpace = 0;
-            
             if (this.GetWidth() == 0 || this.GetHeight() == 0)
             {
                 text.Add("");
@@ -1727,7 +1911,8 @@ namespace PSCLUITools
     class Menu : Control
     {
         public List<Object> Objects { get; set; } = new List<Object>();
-        public int TopDisplayedObjectIndex { get; set; } = 0; // Index of the object at the top of the list
+        public int TopDisplayedObjectIndex { get; set; } = 0;
+        public int BottomDisplayedObjectIndex { get; set; } = 0;
         public List<Object> SelectedObjects { get; set; } = new List<Object>(); // Selected objects
         public Object ActiveObject { get; set; } = 0; // Highlighted object
 
@@ -1745,7 +1930,7 @@ namespace PSCLUITools
             }
             this.SetHeight(objects.Count);
             this.Objects = objects;
-            this.ActiveObject = objects[0];
+            this.SetItemActive(0);
         }
 
         private int GetNumberOfAvailebleRowsForItems()
@@ -1754,13 +1939,10 @@ namespace PSCLUITools
             var rows = this.GetHeight();
             if (this.BorderTop)
                 rows--;
-
             if (this.BorderBottom)
                 rows--;
-
             if (this.PaddingTop)
                 rows--;
-
             if (this.PaddingBottom)
                 rows--;
 
@@ -1812,7 +1994,7 @@ namespace PSCLUITools
 
                         var y = this.GetHeight() / 2 - searchBox.GetHeight() / 2;
                         searchBox.SetVerticalPosition(y);
-                        this.Buffer.AddControl(searchBox);  // TODO : Maybe make it possible to float the 
+                        this.Buffer.Add(searchBox);  // TODO : Maybe make it possible to float the 
                                                             // control in the same container instead.
                         this.Buffer.UpdateAll();
                         this.Buffer.Write();
@@ -1822,7 +2004,7 @@ namespace PSCLUITools
                             this.ActiveObject = findItem;
                         if (this.Objects.Count > this.GetNumberOfAvailebleRowsForItems())
                             this.MoveActiveObjectToMiddle();
-                        this.Buffer.RemoveControl(searchBox);
+                        this.Buffer.Remove(searchBox);
                         this.Buffer.UpdateAll();
                         this.Buffer.Write();
                         break;
@@ -1868,54 +2050,43 @@ namespace PSCLUITools
             if (this.Objects.Count > this.GetNumberOfAvailebleRowsForItems())
             {
                 if (activeObjectIndex + 1 < this.Objects.Count)
-                {
-                    this.ActiveObject = this.Objects[activeObjectIndex + 1];
-                    this.TopDisplayedObjectIndex++;
-                }
+                    this.SetItemActive(activeObjectIndex + 1);
                 else
-                {
-                    this.ActiveObject = this.Objects[0];
-                    this.TopDisplayedObjectIndex++;
-                }
+                    this.SetItemActive(0);
 
-                if (this.TopDisplayedObjectIndex >= this.Objects.Count)
-                    this.TopDisplayedObjectIndex = 0;
+                if (this.Objects.IndexOf(this.ActiveObject) == this.BottomDisplayedObjectIndex + 1)
+                    this.LoadNextPage();
             }
             else
             {
                 if (activeObjectIndex + 1 < this.Objects.Count)
-                    this.ActiveObject = this.Objects[activeObjectIndex + 1];
+                    this.SetItemActive(activeObjectIndex + 1);
                 else
-                    this.ActiveObject = this.Objects[0];
+                    this.SetItemActive(0);
             }
         }
 
         public void SetPreviousItemActive()
         {
+            // TODO Update to a similar state with SetNextItemActive
             var activeObjectIndex = this.Objects.IndexOf(this.ActiveObject);
 
             if (this.Objects.Count > this.GetNumberOfAvailebleRowsForItems())
             {
                 if (activeObjectIndex - 1 >= 0)
-                {
-                    this.ActiveObject = this.Objects[activeObjectIndex - 1];
-                    this.TopDisplayedObjectIndex--;
-                }
+                    this.SetItemActive(activeObjectIndex - 1);
                 else
-                {
-                    this.ActiveObject = this.Objects[this.Objects.Count - 1];
-                    this.TopDisplayedObjectIndex--;
-                }
+                    this.SetItemActive(this.Objects.Count - 1);
 
-                if (this.TopDisplayedObjectIndex < 0)
-                    this.TopDisplayedObjectIndex = this.Objects.Count - 1;
+                if (this.Objects.IndexOf(this.ActiveObject) == this.TopDisplayedObjectIndex + 1)
+                    this.LoadLastPage();
             }
             else
             {
                 if (activeObjectIndex - 1 >= 0)
-                    this.ActiveObject = this.Objects[activeObjectIndex - 1];
+                    this.SetItemActive(activeObjectIndex - 1);
                 else
-                    this.ActiveObject = this.Objects[this.Objects.Count - 1];
+                    this.SetItemActive(this.Objects.Count - 1);
             }
         }
 
@@ -1975,12 +2146,15 @@ namespace PSCLUITools
             }
         }
 
-        public void SetMiddleMenuItemActive()
+        public void SetItemActive(int itemIndex)
         {
-            var middleRowNumber = this.GetNumberOfAvailebleRowsForItems() / 2;
-            if (middleRowNumber >= 0 && middleRowNumber <= this.GetBottomEdgePosition()
-                && (middleRowNumber <= this.Objects.Count - 1))
-                this.TopDisplayedObjectIndex = this.Objects.Count - middleRowNumber;
+            if (this.Buffer != null && this.Buffer.PSHost != null)
+                this.SetObjectBufferCellElement(this.ActiveObject, this.ForegroundColor, this.BackgroundColor);
+
+            this.ActiveObject = this.Objects[itemIndex];
+
+            if (this.Buffer != null && this.Buffer.PSHost != null)
+                this.SetObjectBufferCellElement(this.ActiveObject, this.BackgroundColor, this.ForegroundColor);
         }
 
         public void SetNextPage()
@@ -1996,8 +2170,30 @@ namespace PSCLUITools
             }
         }
 
+        public void LoadNextPage()
+        {
+            this.TopDisplayedObjectIndex = this.BottomDisplayedObjectIndex + 1; // TODO Won't work if we run out of 
+                                                                                // objects at the same point
+            //this.Buffer.RemoveFromBuffer(this); // TODO Maybe still try and get this working
+            this.Buffer.Clear();
+            this.Buffer.UpdateAll();
+        }
+
+        public void LoadLastPage()
+        {
+            // TODO Fix this up, gotta find the correct index for TopDisplayedObjectIndex.
+            // Maybe add a method that finds it in a loop by decreasing the index number and 
+            // jumping from first to last index when required etc.
+            this.TopDisplayedObjectIndex = this.BottomDisplayedObjectIndex + 1; // TODO Won't work if we run out of 
+                                                                                // objects at the same point
+            //this.Buffer.RemoveFromBuffer(this); // TODO Maybe still try and get this working
+            this.Buffer.Clear();
+            this.Buffer.UpdateAll();
+        }
+
         public void MoveActiveObjectToMiddle()
         {
+            // TODO Remove when no longer in use
             var newTopObjectIndex = this.Objects.IndexOf(this.ActiveObject);
             newTopObjectIndex = newTopObjectIndex - (GetNumberOfAvailebleRowsForItems() / 2);
             if (newTopObjectIndex < 0)
@@ -2018,36 +2214,6 @@ namespace PSCLUITools
                     SetPreviousItemActive();
                 }
             }
-        }
-
-        public new void SetHeight(int height)
-        {
-            base.SetHeight(height);
-            SetMiddleMenuItemActive();
-        }
-
-        public new void AddBorder(string edge)
-        {
-            base.AddBorder(edge);
-            SetMiddleMenuItemActive();
-        }
-
-        public new void RemoveBorder(string edge)
-        {
-            base.RemoveBorder(edge);
-            SetMiddleMenuItemActive();
-        }
-
-        public new void SetTopEdgePosition(int y)
-        {
-            base.SetTopEdgePosition(y);
-            SetMiddleMenuItemActive();
-        }
-
-        public new void SetBottomEdgePosition(int y)
-        {
-            base.SetBottomEdgePosition(y);
-            SetMiddleMenuItemActive();
         }
 
         public override List<string> GetTextRepresentation()
@@ -2165,11 +2331,34 @@ namespace PSCLUITools
 
         public override List<BufferCellElement> GetPSHostRawUIRepresentation()
         {
-            // TODO Ape what New-Square.psm1 does
-            // TODO Ape what New-Menu does with WriteItem etc. (text content)
-            // TODO Do not fill the inside of the square for no reason, just add 
-            // items in it
-            throw new NotImplementedException();
+            UpdatePSHostVariables();
+            var textHorizontalSpace = this.GetItemHorizontalSpace();
+
+            var bufferCellElement = new List<BufferCellElement>();
+            foreach (BufferCellElement bce in this.GetPSHostRawUIBorderRepresentation())
+                bufferCellElement.Add(bce);
+
+            var rowsAvailableForItems = this.GetNumberOfAvailebleRowsForItems();
+            var currentItemIndex = this.TopDisplayedObjectIndex;
+
+            for (var i = 0; i < rowsAvailableForItems; i++)
+            {
+                if (currentItemIndex > Objects.Count - 1)
+                    currentItemIndex = 0;
+
+                this.BottomDisplayedObjectIndex = currentItemIndex;
+
+                var item = this.Objects[currentItemIndex];
+                var txt = item.ToString();
+                txt = txt.PadRight(textHorizontalSpace, this.FillCharacter);
+                List<string> content = new List<string>();
+                content.Add(txt);
+                bufferCellElement.Add(NewBufferCellElement("item", content, i, this, item));
+
+                currentItemIndex++;
+            }
+
+            return bufferCellElement;
         }
     }
 }

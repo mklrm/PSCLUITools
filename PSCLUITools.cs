@@ -45,44 +45,22 @@ namespace PSCLUITools
         {
             if (PipelineInputList.Count > 1)
                 InputObject = PipelineInputList;
-            
-            // USING PSHOST:
-            //var size = new Size(2, 2);
-            //var bufferCell = new BufferCell('#', ConsoleColor.Red, ConsoleColor.Black, 0);
-            //var bufferCellArray = Host.UI.RawUI.NewBufferCellArray(size, bufferCell);
-            //var coordinates = new Coordinates(2,2);
-            //Host.UI.RawUI.SetBufferContents(coordinates, bufferCellArray);
 
             var buffer = new Buffer(Host);
             var container = new Container(0, 0, Console.WindowWidth, Console.WindowHeight);
-            buffer.AddControl(container);
+            buffer.Add(container);
 
             var label = new Label(0, 0, "Listing");
-            label.AddBorder("top");
-            label.AddBorder("bottom");
-            label.AddPadding("top");
-            label.AddPadding("bottom");
-            label.AddBorder("left");
-            label.AddBorder("right");
+            label.AddBorder("all");
+            label.RemoveBorder("bottom");
             label.AddPadding("left");
             label.AddPadding("right");
+            var menu = new Menu(0, 0, InputObject);
+            menu.AddBorder("all");
+            menu.AddPadding("all");
+
             container.AddControl(label);
-
-            //var buffer = new Buffer();
-            //var container = new Container(0, 0, Console.WindowWidth, Console.WindowHeight);
-            //buffer.AddControl(container);
-
-            //var label = new Label(0, 0, "Listing");
-            //label.AddBorder("all");
-            //label.RemoveBorder("bottom");
-            //label.AddPadding("left");
-            //label.AddPadding("right");
-            //var menu = new Menu(0, 0, InputObject);
-            //menu.AddBorder("all");
-            //menu.AddPadding("all");
-
-            //container.AddControl(label);
-            //container.AddControl(menu);
+            container.AddControl(menu);
 
             var x = Console.WindowWidth / 2 - container.GetWidth() / 2;
             container.SetHorizontalPosition(x);
@@ -93,7 +71,7 @@ namespace PSCLUITools
             buffer.UpdateAll();
             buffer.Write();
             
-            //WriteObject(menu.ReadKey());
+            WriteObject(menu.ReadKey());
         }
     }
 }
