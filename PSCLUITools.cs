@@ -46,6 +46,7 @@ namespace PSCLUITools
             if (PipelineInputList.Count > 1)
                 InputObject = PipelineInputList;
 
+            //var buffer = new Buffer();
             var buffer = new Buffer(Host);
             var container = new Container(0, 0, Console.WindowWidth, Console.WindowHeight);
             buffer.Add(container);

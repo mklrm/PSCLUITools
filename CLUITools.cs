@@ -145,8 +145,13 @@ namespace PSCLUITools
         
         internal void Clear()
         {
-            this.BufferedControls = new List<Control>();
-            this.bufferCellElements = new List<BufferCellElement>();
+            // TODO You'd probably expect Clear to mean that the screen would be cleared... which maybe this 
+            // should also do. In case of PSHost restore the original buffer and then make new lists.
+            if (this.PSHost != null)
+            {
+                this.BufferedControls = new List<Control>();
+                this.bufferCellElements = new List<BufferCellElement>();
+            }
         }
 
         public void Add(Control control)
@@ -1102,7 +1107,7 @@ namespace PSCLUITools
                 height = this.GetRightPaddingHeight();
                 cell = this.PaddingCellRight;
             }
-            else if (element == "item")
+            else if (element == "item" || element == "activeItem")
             {
                 positionTop = this.GetItemPositionTop(itemNumber);
                 positionBottom = this.GetItemPositionBottom(itemNumber);
@@ -1124,6 +1129,13 @@ namespace PSCLUITools
             {
                 bufferContentNew = this.Buffer.PSHost.UI.RawUI.NewBufferCellArray(
                     text.ToArray(), this.ForegroundColor, this.BackgroundColor);
+                bufferCellElement = new BufferCellElement(
+                    bufferContent, bufferContentNew, coordinates, control, obj);
+            }
+            else if (element == "activeItem")
+            {
+                bufferContentNew = this.Buffer.PSHost.UI.RawUI.NewBufferCellArray(
+                    text.ToArray(), this.BackgroundColor, this.ForegroundColor);
                 bufferCellElement = new BufferCellElement(
                     bufferContent, bufferContentNew, coordinates, control, obj);
             }
@@ -1209,7 +1221,8 @@ namespace PSCLUITools
             if (bce != null)
             {
                 List<string> text = new List<string>();
-                text.Add(findItem.ToString());
+                var txt = findItem.ToString().PadRight(this.GetItemHorizontalSpace(), this.FillCharacter);
+                text.Add(txt);
                 bce.NewBufferCellArray = this.Buffer.PSHost.UI.RawUI.NewBufferCellArray(
                     text.ToArray(), foregroundColor, backgroundColor);
                 bce.Changed = true;
@@ -1913,7 +1926,8 @@ namespace PSCLUITools
         public List<Object> Objects { get; set; } = new List<Object>();
         public int TopDisplayedObjectIndex { get; set; } = 0;
         public int BottomDisplayedObjectIndex { get; set; } = 0;
-        public List<Object> SelectedObjects { get; set; } = new List<Object>(); // Selected objects
+        public List<Object> DisplayedObjects { get; set; } = new List<Object>();
+        public List<Object> SelectedObjects { get; set; } = new List<Object>();
         public Object ActiveObject { get; set; } = 0; // Highlighted object
 
         public Menu(int left, int top, List<Object> objects) : base()
@@ -2054,7 +2068,7 @@ namespace PSCLUITools
                 else
                     this.SetItemActive(0);
 
-                if (this.Objects.IndexOf(this.ActiveObject) == this.BottomDisplayedObjectIndex + 1)
+                if (!this.DisplayedObjects.Contains(this.ActiveObject))
                     this.LoadNextPage();
             }
             else
@@ -2068,7 +2082,6 @@ namespace PSCLUITools
 
         public void SetPreviousItemActive()
         {
-            // TODO Update to a similar state with SetNextItemActive
             var activeObjectIndex = this.Objects.IndexOf(this.ActiveObject);
 
             if (this.Objects.Count > this.GetNumberOfAvailebleRowsForItems())
@@ -2078,7 +2091,7 @@ namespace PSCLUITools
                 else
                     this.SetItemActive(this.Objects.Count - 1);
 
-                if (this.Objects.IndexOf(this.ActiveObject) == this.TopDisplayedObjectIndex + 1)
+                if (!this.DisplayedObjects.Contains(this.ActiveObject))
                     this.LoadLastPage();
             }
             else
@@ -2172,21 +2185,24 @@ namespace PSCLUITools
 
         public void LoadNextPage()
         {
-            this.TopDisplayedObjectIndex = this.BottomDisplayedObjectIndex + 1; // TODO Won't work if we run out of 
-                                                                                // objects at the same point
-            //this.Buffer.RemoveFromBuffer(this); // TODO Maybe still try and get this working
+            this.TopDisplayedObjectIndex = this.BottomDisplayedObjectIndex + 1;
             this.Buffer.Clear();
             this.Buffer.UpdateAll();
         }
 
         public void LoadLastPage()
         {
-            // TODO Fix this up, gotta find the correct index for TopDisplayedObjectIndex.
-            // Maybe add a method that finds it in a loop by decreasing the index number and 
-            // jumping from first to last index when required etc.
-            this.TopDisplayedObjectIndex = this.BottomDisplayedObjectIndex + 1; // TODO Won't work if we run out of 
-                                                                                // objects at the same point
-            //this.Buffer.RemoveFromBuffer(this); // TODO Maybe still try and get this working
+            int newTopDisplayedObjectIndex = this.TopDisplayedObjectIndex;
+
+            for (int i = 1; i <= this.GetNumberOfAvailebleRowsForItems(); i++)
+            {
+                if (newTopDisplayedObjectIndex > 0)
+                    newTopDisplayedObjectIndex--;               
+                else
+                    newTopDisplayedObjectIndex = this.Objects.Count - 1;
+            }
+
+            this.TopDisplayedObjectIndex = newTopDisplayedObjectIndex;
             this.Buffer.Clear();
             this.Buffer.UpdateAll();
         }
@@ -2218,6 +2234,7 @@ namespace PSCLUITools
 
         public override List<string> GetTextRepresentation()
         {
+            this.DisplayedObjects = new List<Object>();
             var text = new List<string>();
             if (this.GetHeight() == 0)
                 return text;
@@ -2262,6 +2279,9 @@ namespace PSCLUITools
 
                 var item = this.Objects[currentItemIndex];
                 var txt = item.ToString();
+
+                this.BottomDisplayedObjectIndex = currentItemIndex;
+                this.DisplayedObjects.Add(item);
 
                 if (!this.PaddingLeft)
                 {
@@ -2332,6 +2352,7 @@ namespace PSCLUITools
         public override List<BufferCellElement> GetPSHostRawUIRepresentation()
         {
             UpdatePSHostVariables();
+            this.DisplayedObjects = new List<Object>();
             var textHorizontalSpace = this.GetItemHorizontalSpace();
 
             var bufferCellElement = new List<BufferCellElement>();
@@ -2353,10 +2374,17 @@ namespace PSCLUITools
                 txt = txt.PadRight(textHorizontalSpace, this.FillCharacter);
                 List<string> content = new List<string>();
                 content.Add(txt);
-                bufferCellElement.Add(NewBufferCellElement("item", content, i, this, item));
+                if (item == this.ActiveObject)
+                    bufferCellElement.Add(NewBufferCellElement("activeItem", content, i, this, item));
+                else
+                    bufferCellElement.Add(NewBufferCellElement("item", content, i, this, item));
+
+                this.DisplayedObjects.Add(item);
 
                 currentItemIndex++;
             }
+
+            this.SetObjectBufferCellElement(this.ActiveObject, this.BackgroundColor, this.ForegroundColor);
 
             return bufferCellElement;
         }
