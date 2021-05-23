@@ -278,6 +278,7 @@ namespace PSCLUITools
         public ConsoleColor ActiveItemForegroundColor { get; set; }
         public ConsoleColor SelectedItemForegroundColor { get; set; }
         public ConsoleColor ActiveAndSelectedItemForegroundColor { get; set; }
+        public string AlignText { get; set; } = "Left";
 
         // Controls
         public const string KeyUp0  = "UpArrow";
@@ -1474,7 +1475,7 @@ namespace PSCLUITools
 
     class Label : Control
     {
-        public string Text { get; set; }
+        private List<string> Text { get; set; } = new List<string>();
 
         public Label(int left, int top, string text) : base()
         {
@@ -1482,6 +1483,19 @@ namespace PSCLUITools
             this.SetVerticalPosition(top);
             this.SetWidth(text.Length);
             this.SetHeight(1);
+            this.Text.Add(text);
+        }
+
+        public Label(int left, int top, List<string> text) : base()
+        {
+            this.SetHorizontalPosition(left);
+            this.SetVerticalPosition(top);
+            foreach (string txt in text)
+            {
+                if (this.GetWidth() < txt.Length)
+                    this.SetWidth(txt.Length);
+            }
+            this.SetHeight(text.Count);
             this.Text = text;
         }
 
@@ -1492,11 +1506,11 @@ namespace PSCLUITools
             this.SetWidth(width);
             this.SetHeight(height);
         }
-
+        
         public override List<string> GetTextRepresentation()
         {
-            var text = new List<string>();
-            var txt = this.Text;
+            var outText = new List<string>();
+            var text = this.Text;
             var horizontalBorder = new string(this.BorderCharacter, this.GetWidth());
             var count = this.GetWidth() - 2;
             if (count < 0)
@@ -1506,8 +1520,8 @@ namespace PSCLUITools
 
             if (this.GetWidth() == 0 || this.GetHeight() == 0)
             {
-                text.Add("");
-                return text;
+                outText.Add("");
+                return outText;
             }
 
             if (this.GetWidth() + this.GetHeight() == 2)
@@ -1515,87 +1529,100 @@ namespace PSCLUITools
                 // There's only room for one character
                 if (this.BorderTop || this.BorderRight || this.BorderBottom || this.BorderLeft)
                     // And it will be a border one
-                    text.Add(this.BorderCharacter.ToString());
+                    outText.Add(this.BorderCharacter.ToString());
                 else
-                    text.Add(txt.Substring(0,1));
-                return text;
+                    outText.Add(text[0].Substring(0,1));
+                return outText;
             }
 
             if (this.BorderTop)
             {
-                text.Add(horizontalBorder);
+                outText.Add(horizontalBorder);
                 if (this.GetHeight() == 1)
                 {
-                    return text;
+                    return outText;
                 }
                 else if (this.GetHeight() == 2 && this.BorderBottom)
                 {
-                    text.Add(horizontalBorder);
-                    return text;
+                    outText.Add(horizontalBorder);
+                    return outText;
                 }
             }
 
-            if (txt.Length > textHorizontalSpace)
-                txt = txt.Substring(0, textHorizontalSpace);
-            else
-                txt = txt.PadRight(textHorizontalSpace, this.FillCharacter);
+            foreach (string txt in text)
+            {
+                string outTxt = txt;
+                int leftFillCount = 0; // Number of fill characters on left side of text
 
-            if (this.BorderLeft && this.BorderRight && this.GetWidth() == 2)
-            {
-                txt = new string(this.BorderCharacter, 2);
-                emptyLine = new string(this.BorderCharacter, 2);
-            }
-            else if ((this.BorderLeft || this.BorderRight) && this.GetWidth() == 1)
-            {
-                txt = new string(this.BorderCharacter, 1);
-                emptyLine = new string(this.BorderCharacter, 1);
-            }
-            else
-            {
-                if (this.BorderRight && this.PaddingRight)
+                if (this.AlignText == "center" && outTxt.Length < textHorizontalSpace)
                 {
-                    txt = txt + this.PaddingCharacterRight + this.BorderCharacter;
-                    emptyLine = emptyLine + this.BorderCharacter;
+                    leftFillCount = (textHorizontalSpace - outTxt.Length) / 2;
+                    outTxt = new String(this.FillCharacter, leftFillCount) + outTxt;
                 }
-                else if (this.BorderRight)
-                {
-                    txt = txt + this.BorderCharacter;
-                    emptyLine = emptyLine + this.BorderCharacter;
-                }
-                else if (this.PaddingRight)
-                {
-                    txt = txt + this.PaddingCharacterRight;
-                    emptyLine = emptyLine + this.PaddingCharacterRight;
-                }
+
+                if (outTxt.Length > textHorizontalSpace)
+                    outTxt = outTxt.Substring(0, textHorizontalSpace);
                 else
-                    emptyLine = emptyLine + this.FillCharacter;
-                
-                if (this.BorderLeft && this.PaddingLeft)
+                    outTxt = outTxt.PadRight(textHorizontalSpace, this.FillCharacter);
+
+                if (this.BorderLeft && this.BorderRight && this.GetWidth() == 2)
                 {
-                    txt = "" + this.BorderCharacter + this.PaddingCharacterLeft + txt;
-                    emptyLine = "" + this.BorderCharacter + emptyLine;
+                    outTxt = new string(this.BorderCharacter, 2);
+                    emptyLine = new string(this.BorderCharacter, 2);
                 }
-                else if (this.BorderLeft)
+                else if ((this.BorderLeft || this.BorderRight) && this.GetWidth() == 1)
                 {
-                    txt = this.BorderCharacter + txt;
-                    emptyLine = this.BorderCharacter + emptyLine;
+                    outTxt = new string(this.BorderCharacter, 1);
+                    emptyLine = new string(this.BorderCharacter, 1);
                 }
-                else if (this.PaddingLeft)
-                {
-                    txt = this.PaddingCharacterLeft + txt;
-                    emptyLine = this.PaddingCharacterLeft + emptyLine;
-                }
+
                 else
-                    emptyLine = this.FillCharacter + emptyLine;
+                {
+                    if (this.BorderRight && this.PaddingRight)
+                    {
+                        outTxt = outTxt + this.PaddingCharacterRight + this.BorderCharacter;
+                        emptyLine = emptyLine + this.BorderCharacter;
+                    }
+                    else if (this.BorderRight)
+                    {
+                        outTxt = outTxt + this.BorderCharacter;
+                        emptyLine = emptyLine + this.BorderCharacter;
+                    }
+                    else if (this.PaddingRight)
+                    {
+                        outTxt = outTxt + this.PaddingCharacterRight;
+                        emptyLine = emptyLine + this.PaddingCharacterRight;
+                    }
+                    else
+                        emptyLine = emptyLine + this.FillCharacter;
+                    
+                    if (this.BorderLeft && this.PaddingLeft)
+                    {
+                        outTxt = "" + this.BorderCharacter + this.PaddingCharacterLeft + outTxt;
+                        emptyLine = "" + this.BorderCharacter + emptyLine;
+                    }
+                    else if (this.BorderLeft)
+                    {
+                        outTxt = this.BorderCharacter + outTxt;
+                        emptyLine = this.BorderCharacter + emptyLine;
+                    }
+                    else if (this.PaddingLeft)
+                    {
+                        outTxt = this.PaddingCharacterLeft + outTxt;
+                        emptyLine = this.PaddingCharacterLeft + emptyLine;
+                    }
+                    else
+                        emptyLine = this.FillCharacter + emptyLine;
 
-                if (!this.BorderRight && !this.BorderLeft && this.GetWidth() == 1)
-                    emptyLine = "" + this.FillCharacter;
+                    if (!this.BorderRight && !this.BorderLeft && this.GetWidth() == 1)
+                        emptyLine = "" + this.FillCharacter;
+                }
+
+                if (this.PaddingTop)
+                    outText.Add(emptyLine.Replace(this.FillCharacter, this.PaddingCharacterTop));
+
+                outText.Add(outTxt);
             }
-
-            if (this.PaddingTop)
-                text.Add(emptyLine.Replace(this.FillCharacter, this.PaddingCharacterTop));
-
-            text.Add(txt);
 
             var numberOfEmptyLines = this.GetHeight();
 
@@ -1615,17 +1642,17 @@ namespace PSCLUITools
             {
                 for (var i = 1; i < numberOfEmptyLines; i++)
                 {
-                    text.Add(emptyLine);
+                    outText.Add(emptyLine);
                 }
             }
 
             if (this.PaddingTop)
-                text.Add(emptyLine.Replace(this.FillCharacter, this.PaddingCharacterBottom));
+                outText.Add(emptyLine.Replace(this.FillCharacter, this.PaddingCharacterBottom));
             
             if (this.BorderBottom)
-                text.Add(horizontalBorder);
+                outText.Add(horizontalBorder);
 
-            return text;
+            return outText;
         }
         
         public override List<BufferCellElement> GetPSHostRawUIRepresentation()
@@ -1634,11 +1661,21 @@ namespace PSCLUITools
 
             var textHorizontalSpace = this.GetItemHorizontalSpace();
             List<string> content = new List<string>();
-            string txt = this.Text;
-            if (txt.Length == 0)
-                txt = " ";
-            txt = txt.PadRight(textHorizontalSpace, this.FillCharacter);
-            content.Add(txt);
+            List<string> text = this.Text;
+            foreach (string txt in text)
+            {
+                string outTxt = txt;
+                int leftFillCount = 0; // Number of fill characters on left side of text
+                if (outTxt.Length == 0)
+                    outTxt = " ";
+                if (this.AlignText == "center" && outTxt.Length < textHorizontalSpace)
+                {
+                    leftFillCount = (textHorizontalSpace - outTxt.Length) / 2;
+                    outTxt = new String(this.FillCharacter, leftFillCount) + outTxt;
+                }
+                outTxt = outTxt.PadRight(textHorizontalSpace, this.FillCharacter);
+                content.Add(outTxt);
+            }
 
             var bufferCellElement = new List<BufferCellElement>();
             foreach (BufferCellElement bce in this.GetPSHostRawUIBorderRepresentation())
@@ -1660,11 +1697,11 @@ namespace PSCLUITools
                 return rows;
             }
             
-            if (GetNumberOfAvailableContentRows() == 1)
-                bufferCellElement.Add(NewBufferCellElement("item", content));
-            else if (GetNumberOfAvailableContentRows() > 1)
+            bufferCellElement.Add(NewBufferCellElement("item", content));
+
+            if (GetNumberOfAvailableContentRows() > content.Count)
             {
-                string spaces = new String(this.FillCharacter, this.Text.Length);
+                string spaces = new String(this.FillCharacter, textHorizontalSpace);
                 for (int i = 1; i < GetNumberOfAvailableContentRows(); i++)
                     content.Add(spaces);
                 bufferCellElement.Add(NewBufferCellElement("item", content));
@@ -2001,6 +2038,7 @@ namespace PSCLUITools
         private List<Object> DisplayedObjects { get; set; } = new List<Object>();
         private List<Object> SelectedObjects { get; set; } = new List<Object>();
         private Object ActiveObject { get; set; } = 0; // Highlighted object
+        public string Mode { get; set; } = "Default";
 
         public Menu(int left, int top, List<Object> objects) : base()
         {
@@ -2049,12 +2087,16 @@ namespace PSCLUITools
                 {
                     case KeyUp0:
                     case KeyUp1:
+                        if (this.Mode == "List")
+                            break;
                         this.SetPreviousItemActive();
                         this.Buffer.UpdateAll();
                         this.Buffer.Write();
                         break;
                     case KeyDown0:
                     case KeyDown1:
+                        if (this.Mode == "List")
+                            break;
                         this.SetNextItemActive();
                         this.Buffer.UpdateAll();
                         this.Buffer.Write();
@@ -2070,6 +2112,8 @@ namespace PSCLUITools
                         this.Buffer.Write();
                         break;
                     case KeyFind:
+                        if (this.Mode == "List")
+                            break;
                         var searchBox = new TextBox(0, 0, 0);
                         searchBox.AddBorder("all");
                         searchBox.AddPadding("all");
@@ -2106,6 +2150,8 @@ namespace PSCLUITools
                         this.Buffer.Write();
                         break;
                     case KeyFindNext:
+                        if (this.Mode == "List")
+                            break;
                         item = this.FindNextItem(searchTerm);
                         if (item != null)
                             this.SetItemActive(this.Objects.IndexOf(item));
@@ -2116,6 +2162,8 @@ namespace PSCLUITools
                         this.Buffer.Write();
                         break;
                     case KeyFindPrevious:
+                        if (this.Mode == "List")
+                            break;
                         item = this.FindPreviousItem(searchTerm);
                         if (item != null)
                             this.SetItemActive(this.Objects.IndexOf(item));
@@ -2126,18 +2174,25 @@ namespace PSCLUITools
                         this.Buffer.Write();
                         break;
                     case KeySelect:
+                        if (this.Mode == "List")
+                            return this.Objects;
                         if (this.SelectedObjects.Contains(this.ActiveObject))
                             this.RemoveSelectedObject(this.ActiveObject);
                         else
                             this.AddSelectedObject(this.ActiveObject);
-                        // TODO If this.Mode == "Default" or something just return
+                        if (this.Mode == "Default")
+                            return this.SelectedObjects;
                         this.Buffer.UpdateAll();
                         this.Buffer.Write();
                         break;
                     case KeyConfirm:
+                        if (this.Mode == "List")
+                            return this.Objects;
+                        if (this.Mode == "Default")
+                            this.AddSelectedObject(this.ActiveObject);
                         return this.SelectedObjects;
                     case KeyCancel:
-                        return new List<Object>();
+                        return null;
                 }
             }
         }
@@ -2234,7 +2289,11 @@ namespace PSCLUITools
 
         private void SetItemActive(int itemIndex)
         {
+            if (this.Mode == "List")
+                return;
+            
             ConsoleColor newForegroundColor;
+
             if (this.SelectedObjects.Contains(this.ActiveObject))
                 newForegroundColor = this.SelectedItemForegroundColor;
             else
@@ -2292,7 +2351,8 @@ namespace PSCLUITools
             if (this.TopDisplayedObjectIndex == this.Objects.Count)
                 this.TopDisplayedObjectIndex = 0;
             this.Buffer.Clear();
-            this.ActiveObject = this.Objects[this.TopDisplayedObjectIndex];
+            if (this.Mode != "List")
+                this.ActiveObject = this.Objects[this.TopDisplayedObjectIndex];
         }
 
         private void LoadPreviousPage()
@@ -2319,7 +2379,8 @@ namespace PSCLUITools
             this.BottomDisplayedObjectIndex = newBottomDisplayedObjectIndex;
 
             this.Buffer.Clear(); // TODO Not sure this ought to be here...
-            this.ActiveObject = this.Objects[this.BottomDisplayedObjectIndex];
+            if (this.Mode != "List")
+                this.ActiveObject = this.Objects[this.BottomDisplayedObjectIndex];
         }
 
         private void MoveActiveObjectToMiddle()
@@ -2354,6 +2415,7 @@ namespace PSCLUITools
             var text = new List<string>();
             if (this.GetHeight() == 0)
                 return text;
+            var textHorizontalSpace = this.GetItemHorizontalSpace();
             var horizontalBorder = new string(this.BorderCharacter, this.GetWidth());
             if ((this.BorderTop || this.BorderBottom) && this.GetHeight() == 1)
             {
@@ -2394,29 +2456,38 @@ namespace PSCLUITools
                     currentItemIndex = 0;
 
                 var item = this.Objects[currentItemIndex];
-                var txt = item.ToString();
+                var outTxt = item.ToString();
+                int leftFillCount = 0; // Number of fill characters on left side of text
+
+                if (this.AlignText == "center" && outTxt.Length < textHorizontalSpace)
+                {
+                    leftFillCount = (textHorizontalSpace - outTxt.Length) / 2;
+                    outTxt = new String(this.FillCharacter, leftFillCount) + outTxt;
+                }
 
                 this.BottomDisplayedObjectIndex = currentItemIndex;
                 this.DisplayedObjects.Add(item);
 
                 if (!this.PaddingLeft)
                 {
-                    if (this.ActiveObject == item && this.SelectedObjects.Contains(item))
-                        txt = "" + this.SelectedAndActiveCharacter + this.FillCharacter + txt;
-                    else if (this.ActiveObject == item)
-                        txt = "" + this.ActiveCharacter + this.FillCharacter + txt;
+                    if (this.ActiveObject == item && this.SelectedObjects.Contains(item) &&
+                        this.Mode != "List")
+                        outTxt = "" + this.SelectedAndActiveCharacter + this.FillCharacter + outTxt;
+                    else if (this.ActiveObject == item && this.Mode != "List")
+                        outTxt = "" + this.ActiveCharacter + this.FillCharacter + outTxt;
                     else if (this.SelectedObjects.Contains(item))
-                        txt = "" + this.SelectCharacter + this.FillCharacter + txt;
+                        outTxt = "" + this.SelectCharacter + this.FillCharacter + outTxt;
                 }
 
-                var label = new Label(0, 0, txt);
+                var label = new Label(0, 0, outTxt);
                 var width = this.GetWidth();
 
                 if (this.PaddingLeft)
                 {
-                    if (this.ActiveObject == item && this.SelectedObjects.Contains(item))
+                    if (this.ActiveObject == item && this.SelectedObjects.Contains(item) &&
+                        this.Mode != "List")
                         label.PaddingCharacterLeft = this.SelectedAndActiveCharacter;
-                    else if (this.ActiveObject == item)
+                    else if (this.ActiveObject == item && this.Mode != "List")
                         label.PaddingCharacterLeft = this.ActiveCharacter;
                     else if (this.SelectedObjects.Contains(item))
                         label.PaddingCharacterLeft = this.SelectCharacter;
@@ -2486,11 +2557,18 @@ namespace PSCLUITools
                 this.BottomDisplayedObjectIndex = currentItemIndex;
 
                 var item = this.Objects[currentItemIndex];
-                var txt = item.ToString();
-                txt = txt.PadRight(textHorizontalSpace, this.FillCharacter);
+                string outTxt = item.ToString();
+                int leftFillCount = 0; // Number of fill characters on left side of text
+                if (this.AlignText == "center" && outTxt.Length < textHorizontalSpace)
+                {
+                    leftFillCount = (textHorizontalSpace - outTxt.Length) / 2;
+                    outTxt = new String(this.FillCharacter, leftFillCount) + outTxt;
+                }
+                outTxt = outTxt.PadRight(textHorizontalSpace, this.FillCharacter);
                 List<string> content = new List<string>();
-                content.Add(txt);
-                if (item == this.ActiveObject)
+                content.Add(outTxt);
+
+                if (item == this.ActiveObject && this.Mode != "List")
                     bufferCellElement.Add(NewBufferCellElement("activeItem", content, i, this, item));
                 else
                     bufferCellElement.Add(NewBufferCellElement("item", content, i, this, item));

@@ -18,15 +18,6 @@ namespace PSCLUITools
             ValueFromPipelineByPropertyName = true)]
         public List<Object> InputObject { get; set; }
 
-        // Align item names Center of Left
-        [Parameter(Mandatory = false)]
-        [ValidateSet("Center","Left")]
-        public string AlignText { get; set; } = "Left";
-
-        // The name of the property of items to be displayed on the menu, such as Name
-        [Parameter(Mandatory = false)]
-        public string DisplayProperty { get; set; }
-
         //     Default: Select one by hitting Enter
         // Multiselect: Pick multiple items with Space, select with Enter
         //        List: Display a list of items and return them
@@ -34,11 +25,30 @@ namespace PSCLUITools
         [ValidateSet("Multiselect","List","Default")]
         public string Mode { get; set; } = "Default";
 
+        // The name of the property of items to be displayed on the menu, such as Name
+        // NOTE Leaving this out for now. Seems that this would require baking in a list of object 
+        // types, trying to cast each object as a type and then accessing the Property. If something 
+        // like this is needed just replace .ToString() on each object in Powershell before passing 
+        // it to this CMDLet or wrap each object in a PSObject that has it's own .ToString() method 
+        // if you can't modify the original object.
+        //[Parameter(Mandatory = false)]
+        //public string DisplayProperty { get; set; }
+
+        // Align item names Center of Left
+        [Parameter(Mandatory = false)]
+        [ValidateSet("Center","Left")]
+        public string AlignText { get; set; } = "Left";
+
         // A title / help text to display above the menu
         [Parameter(Mandatory = false)]
         public List<string> Title { get; set; } = new List<string>();
 
         // Align Title Center of Left
+        [Parameter(Mandatory = false)]
+        [ValidateSet("Center","Left")]
+        public string AlignTitle { get; set; } = "Left";
+
+        // Display a list of selected objects after multiselection
         [Parameter(Mandatory = false)]
         public SwitchParameter ListSelected { get; set; }
 
@@ -99,24 +109,36 @@ namespace PSCLUITools
 
         protected override void EndProcessing()
         {
+            // FIX There's a bug in the basic Buffer that adds two extra border 
+            // characters to the top border of menu when the Title label is added
+
             if (PipelineInputList.Count > 1)
                 InputObject = PipelineInputList;
 
-            //var buffer = new Buffer();
-            var buffer = new Buffer(Host);
+            var buffer = new Buffer();
+            //var buffer = new Buffer(Host);
             var container = new Container(0, 0, Console.WindowWidth, Console.WindowHeight);
             buffer.Add(container);
 
-            var label = new Label(0, 0, "Listing");
-            label.AddBorder("all");
-            label.RemoveBorder("bottom");
-            label.AddPadding("left");
-            label.AddPadding("right");
+            if (Title.Count > 0)
+            {
+                var label = new Label(0, 0, Title);
+                label.AddBorder("all");
+                label.RemoveBorder("bottom");
+                label.AddPadding("left");
+                label.AddPadding("right");
+                if (AlignTitle != null)
+                    label.AlignText = AlignTitle;
+                container.AddControl(label);
+            }
+
             var menu = new Menu(0, 0, InputObject);
+            menu.Mode = Mode;
             menu.AddBorder("all");
             menu.AddPadding("all");
+            if (AlignText != null)
+                menu.AlignText = AlignText;
 
-            container.AddControl(label);
             container.AddControl(menu);
 
             var x = Console.WindowWidth / 2 - container.GetWidth() / 2;
