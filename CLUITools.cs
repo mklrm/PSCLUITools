@@ -260,21 +260,24 @@ namespace PSCLUITools
         protected bool PaddingLeft { get; set; } = false;
         public char BorderCharacter { get; set; } = '#';
         public BufferCell BorderCell { get; set; } = new BufferCell(' ', 0, 0, 0);
-        public char PaddingCharacterTop { get; set; } = '.';
-        public char PaddingCharacterRight { get; set; } = '.';
-        public char PaddingCharacterBottom { get; set; } = '.';
-        public char PaddingCharacterLeft { get; set; } = '.';
+        public char PaddingCharacterTop { get; set; } = ' ';
+        public char PaddingCharacterRight { get; set; } = ' ';
+        public char PaddingCharacterBottom { get; set; } = ' ';
+        public char PaddingCharacterLeft { get; set; } = ' ';
         public BufferCell PaddingCellTop { get; set; } = new BufferCell(' ', 0, 0, 0);
         public BufferCell PaddingCellRight { get; set; } = new BufferCell(' ', 0, 0, 0);
         public BufferCell PaddingCellBottom { get; set; } = new BufferCell(' ', 0, 0, 0);
         public BufferCell PaddingCellLeft { get; set; } = new BufferCell(' ', 0, 0, 0);
-        public char FillCharacter { get; set; } = '`';
+        public char FillCharacter { get; set; } = ' ';
         public BufferCell FillCell { get; set; } = new BufferCell(' ', 0, 0, 0);
         public char SelectCharacter { get; set; } = '+';
         public char ActiveCharacter { get; set; } = '>';
         public char SelectedAndActiveCharacter { get; set; } = '*';
         public ConsoleColor BackgroundColor { get; set; }
         public ConsoleColor ForegroundColor { get; set; }
+        public ConsoleColor ActiveItemForegroundColor { get; set; }
+        public ConsoleColor SelectedItemForegroundColor { get; set; }
+        public ConsoleColor ActiveAndSelectedItemForegroundColor { get; set; }
 
         // Controls
         public const string KeyUp0  = "UpArrow";
@@ -314,6 +317,9 @@ namespace PSCLUITools
         {
             this.BackgroundColor = this.Buffer.PSHost.UI.RawUI.ForegroundColor;
             this.ForegroundColor = this.Buffer.PSHost.UI.RawUI.BackgroundColor;
+            this.ActiveItemForegroundColor = ConsoleColor.Green;
+            this.SelectedItemForegroundColor = ConsoleColor.Magenta;
+            this.ActiveAndSelectedItemForegroundColor = ConsoleColor.Cyan;
             this.BorderCell = new BufferCell(this.BorderCharacter, 
                 this.ForegroundColor, this.BackgroundColor, 0);
             this.PaddingCellTop = new BufferCell(this.PaddingCharacterTop, 
@@ -1114,7 +1120,7 @@ namespace PSCLUITools
                 height = this.GetRightPaddingHeight();
                 cell = this.PaddingCellRight;
             }
-            else if (element == "item" || element == "activeItem")
+            else if (element.ToLower().Contains("item"))
             {
                 positionTop = this.GetItemPositionTop(itemNumber);
                 positionBottom = this.GetItemPositionBottom(itemNumber);
@@ -1142,7 +1148,21 @@ namespace PSCLUITools
             else if (element == "activeItem")
             {
                 bufferContentNew = this.Buffer.PSHost.UI.RawUI.NewBufferCellArray(
-                    text.ToArray(), this.BackgroundColor, this.ForegroundColor);
+                    text.ToArray(), this.ActiveItemForegroundColor, this.BackgroundColor);
+                bufferCellElement = new BufferCellElement(
+                    bufferContent, bufferContentNew, coordinates, control, obj);
+            }
+            else if (element == "selectedItem")
+            {
+                bufferContentNew = this.Buffer.PSHost.UI.RawUI.NewBufferCellArray(
+                    text.ToArray(), this.SelectedItemForegroundColor, this.BackgroundColor);
+                bufferCellElement = new BufferCellElement(
+                    bufferContent, bufferContentNew, coordinates, control, obj);
+            }
+            else if (element == "activeAndSelectedItem")
+            {
+                bufferContentNew = this.Buffer.PSHost.UI.RawUI.NewBufferCellArray(
+                    text.ToArray(), this.ActiveAndSelectedItemForegroundColor, this.BackgroundColor);
                 bufferCellElement = new BufferCellElement(
                     bufferContent, bufferContentNew, coordinates, control, obj);
             }
@@ -1975,12 +1995,12 @@ namespace PSCLUITools
 
     class Menu : Control
     {
-        public List<Object> Objects { get; set; } = new List<Object>();
-        public int TopDisplayedObjectIndex { get; set; } = 0;
-        public int BottomDisplayedObjectIndex { get; set; } = 0;
-        public List<Object> DisplayedObjects { get; set; } = new List<Object>();
-        public List<Object> SelectedObjects { get; set; } = new List<Object>();
-        public Object ActiveObject { get; set; } = 0; // Highlighted object
+        private List<Object> Objects { get; set; } = new List<Object>();
+        private int TopDisplayedObjectIndex { get; set; } = 0;
+        private int BottomDisplayedObjectIndex { get; set; } = 0;
+        private List<Object> DisplayedObjects { get; set; } = new List<Object>();
+        private List<Object> SelectedObjects { get; set; } = new List<Object>();
+        private Object ActiveObject { get; set; } = 0; // Highlighted object
 
         public Menu(int left, int top, List<Object> objects) : base()
         {
@@ -2107,9 +2127,9 @@ namespace PSCLUITools
                         break;
                     case KeySelect:
                         if (this.SelectedObjects.Contains(this.ActiveObject))
-                            this.SelectedObjects.Remove(this.ActiveObject);
+                            this.RemoveSelectedObject(this.ActiveObject);
                         else
-                            this.SelectedObjects.Add(this.ActiveObject);
+                            this.AddSelectedObject(this.ActiveObject);
                         // TODO If this.Mode == "Default" or something just return
                         this.Buffer.UpdateAll();
                         this.Buffer.Write();
@@ -2122,7 +2142,7 @@ namespace PSCLUITools
             }
         }
 
-        public void SetNextItemActive()
+        private void SetNextItemActive()
         {
             var activeObjectIndex = this.Objects.IndexOf(this.ActiveObject);
 
@@ -2145,7 +2165,7 @@ namespace PSCLUITools
             }
         }
 
-        public void SetPreviousItemActive()
+        private void SetPreviousItemActive()
         {
             var activeObjectIndex = this.Objects.IndexOf(this.ActiveObject);
 
@@ -2168,7 +2188,7 @@ namespace PSCLUITools
             }
         }
 
-        public Object FindNextItem(string searchTerm)
+        private Object FindNextItem(string searchTerm)
         {
             searchTerm = searchTerm.ToLower();
             Regex regex = new Regex(searchTerm);
@@ -2190,7 +2210,7 @@ namespace PSCLUITools
             }
         }
 
-        public Object FindPreviousItem(string searchTerm)
+        private Object FindPreviousItem(string searchTerm)
         {
             searchTerm = searchTerm.ToLower();
             Regex regex = new Regex(searchTerm);
@@ -2212,18 +2232,61 @@ namespace PSCLUITools
             }
         }
 
-        public void SetItemActive(int itemIndex)
+        private void SetItemActive(int itemIndex)
         {
+            ConsoleColor newForegroundColor;
+            if (this.SelectedObjects.Contains(this.ActiveObject))
+                newForegroundColor = this.SelectedItemForegroundColor;
+            else
+                newForegroundColor = this.ForegroundColor;
+
             if (this.Buffer != null && this.Buffer.PSHost != null)
-                this.SetObjectBufferCellElement(this.ActiveObject, this.ForegroundColor, this.BackgroundColor);
+                this.SetObjectBufferCellElement(this.ActiveObject, newForegroundColor, this.BackgroundColor);
 
             this.ActiveObject = this.Objects[itemIndex];
 
+            if (this.SelectedObjects.Contains(this.ActiveObject))
+                newForegroundColor = this.ActiveAndSelectedItemForegroundColor;
+            else
+                newForegroundColor = this.ActiveItemForegroundColor;
+
             if (this.Buffer != null && this.Buffer.PSHost != null)
-                this.SetObjectBufferCellElement(this.ActiveObject, this.BackgroundColor, this.ForegroundColor);
+                this.SetObjectBufferCellElement(this.ActiveObject, newForegroundColor, this.BackgroundColor);
         }
 
-        public void LoadNextPage()
+        private void AddSelectedObject(Object item)
+        {
+            ConsoleColor newForegroundColor;
+
+            if (!this.SelectedObjects.Contains(item))
+                this.SelectedObjects.Add(item);
+
+            if (this.ActiveObject == item)
+                newForegroundColor = this.ActiveAndSelectedItemForegroundColor;
+            else
+                newForegroundColor = this.SelectedItemForegroundColor;
+
+            if (this.Buffer != null && this.Buffer.PSHost != null)
+                this.SetObjectBufferCellElement(this.ActiveObject, newForegroundColor, this.BackgroundColor);
+        }
+
+        private void RemoveSelectedObject(Object item)
+        {
+            ConsoleColor newForegroundColor;
+
+            if (this.SelectedObjects.Contains(item))
+                this.SelectedObjects.Remove(item);
+
+            if (this.ActiveObject == item)
+                newForegroundColor = this.ActiveItemForegroundColor;
+            else
+                newForegroundColor = this.ForegroundColor;
+
+            if (this.Buffer != null && this.Buffer.PSHost != null)
+                this.SetObjectBufferCellElement(this.ActiveObject, newForegroundColor, this.BackgroundColor);
+        }
+
+        private void LoadNextPage()
         {
             this.TopDisplayedObjectIndex = this.BottomDisplayedObjectIndex + 1;
             if (this.TopDisplayedObjectIndex == this.Objects.Count)
@@ -2232,7 +2295,7 @@ namespace PSCLUITools
             this.ActiveObject = this.Objects[this.TopDisplayedObjectIndex];
         }
 
-        public void LoadPreviousPage()
+        private void LoadPreviousPage()
         {
             int newTopDisplayedObjectIndex = this.TopDisplayedObjectIndex;
 
@@ -2259,7 +2322,7 @@ namespace PSCLUITools
             this.ActiveObject = this.Objects[this.BottomDisplayedObjectIndex];
         }
 
-        public void MoveActiveObjectToMiddle()
+        private void MoveActiveObjectToMiddle()
         {
             int newTopDisplayedObjectIndex = this.Objects.IndexOf(this.ActiveObject);
 

@@ -7,34 +7,90 @@ using System.Collections.Generic;
 namespace PSCLUITools
 {
     [Cmdlet(VerbsCommon.New,"Menu2")]
-    //[OutputType(typeof(FavoriteStuff))]
+    [OutputType(typeof(Object))]
     public class NewMenu : PSCmdlet
     {
+        // Menu items
         [Parameter(
             Mandatory = false,
             Position = 0,
             ValueFromPipeline = true,
             ValueFromPipelineByPropertyName = true)]
         public List<Object> InputObject { get; set; }
-        /*
-        [Parameter(
-            Mandatory = true,
-            Position = 0,
-            ValueFromPipeline = true,
-            ValueFromPipelineByPropertyName = true)]
-        public int FavoriteNumber { get; set; }
 
-        [Parameter(
-            Position = 1,
-            ValueFromPipelineByPropertyName = true)]
-        [ValidateSet("Cat", "Dog", "Horse")]
-        public string FavoritePet { get; set; } = "Dog";
-        */
+        // Align item names Center of Left
+        [Parameter(Mandatory = false)]
+        [ValidateSet("Center","Left")]
+        public string AlignText { get; set; } = "Left";
+
+        // The name of the property of items to be displayed on the menu, such as Name
+        [Parameter(Mandatory = false)]
+        public string DisplayProperty { get; set; }
+
+        //     Default: Select one by hitting Enter
+        // Multiselect: Pick multiple items with Space, select with Enter
+        //        List: Display a list of items and return them
+        [Parameter(Mandatory = false)]
+        [ValidateSet("Multiselect","List","Default")]
+        public string Mode { get; set; } = "Default";
+
+        // A title / help text to display above the menu
+        [Parameter(Mandatory = false)]
+        public List<string> Title { get; set; } = new List<string>();
+
+        // Align Title Center of Left
+        [Parameter(Mandatory = false)]
+        public SwitchParameter ListSelected { get; set; }
+
+        // Horizontal position of the upper left corner
+        [Parameter(Mandatory = false)]
+        [ValidateRange(-1, int.MaxValue)]
+        public int X { get; set; } = -1;
+
+        // Vertical position of the upper left corner
+        [Parameter(Mandatory = false)]
+        [ValidateRange(-1, int.MaxValue)]
+        public int Y { get; set; } = -1;
+
+        // Width of the menu
+        [Parameter(Mandatory = false)]
+        [ValidateRange(-1, int.MaxValue)]
+        public int Width { get; set; } = -1;
+
+        // Height of the menu
+        [Parameter(Mandatory = false)]
+        [ValidateRange(-1, int.MaxValue)]
+        public int Height { get; set; } = -1;
+
+        // Character to write on empty cells like edges
+        [Parameter(Mandatory = false)]
+        public char Character { get; set; } = ' ';
+
+        // Foreground color
+        [Parameter(Mandatory = false)]
+        public string ItemColor { get; set; }
+
+        // Background color
+        [Parameter(Mandatory = false)]
+        public string BackgroundColor { get; set; }
+
+        // Indicates current item
+        [Parameter(Mandatory = false)]
+        public string ItemHighlightColor { get; set; } = "Green";
+
+        // Indicates an item is selected
+        [Parameter(Mandatory = false)]
+        public string ItemSelectedColor { get; set; } = "Yellow";
+
+        // Indicates a color is both current and selected
+        [Parameter(Mandatory = false)]
+        public string ItemHighlightedAndSelectedColor { get; set; } = "Magenta";
+
+        // Remove edge
+        [Parameter(Mandatory = false)]
+        public SwitchParameter NoEdge { get; set; }
+
         public List<Object> PipelineInputList = new List<Object>();
-        // This method gets called once for each cmdlet in the pipeline when the pipeline starts executing
-        //protected override void BeginProcessing()
-        //{
-        //}
 
         protected override void ProcessRecord()
         {
