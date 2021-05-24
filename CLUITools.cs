@@ -8,7 +8,7 @@ namespace PSCLUITools
 {
     class Buffer : PSCmdlet
     {
-        protected static int left = Console.WindowLeft;
+        internal static int left = Console.WindowLeft;
         internal static int top = Console.WindowTop;
         internal static Coordinates position = new Coordinates(left, top);
         internal static int width = Console.WindowWidth;
@@ -33,6 +33,26 @@ namespace PSCLUITools
             this.container.SetContainerToWidestControlWidth = false;
             this.container.SetControlsToContainerWidth = false;
             this.container.AutoPositionControls = false;
+        }
+
+        internal int GetLeftEdgePosition()
+        {
+            return left;
+        }
+
+        internal int GetTopEdgePosition()
+        {
+            return top;
+        }
+
+        internal int GetRightEdgePosition()
+        {
+            return left + width - 1;
+        }
+
+        internal int GetBottomEdgePosition()
+        {
+            return top + height - 1;
         }
 
         protected void Insert(int column, int row, List<string> text)
@@ -268,16 +288,16 @@ namespace PSCLUITools
         public BufferCell PaddingCellRight { get; set; } = new BufferCell(' ', 0, 0, 0);
         public BufferCell PaddingCellBottom { get; set; } = new BufferCell(' ', 0, 0, 0);
         public BufferCell PaddingCellLeft { get; set; } = new BufferCell(' ', 0, 0, 0);
-        public char FillCharacter { get; set; } = ' ';
-        public BufferCell FillCell { get; set; } = new BufferCell(' ', 0, 0, 0);
+        public char BackgroundCharacter { get; set; } = ' ';
+        public BufferCell BackgroundCell { get; set; } = new BufferCell(' ', 0, 0, 0);
         public char SelectCharacter { get; set; } = '+';
         public char ActiveCharacter { get; set; } = '>';
         public char SelectedAndActiveCharacter { get; set; } = '*';
         public ConsoleColor BackgroundColor { get; set; }
         public ConsoleColor ForegroundColor { get; set; }
-        public ConsoleColor ActiveItemForegroundColor { get; set; }
-        public ConsoleColor SelectedItemForegroundColor { get; set; }
-        public ConsoleColor ActiveAndSelectedItemForegroundColor { get; set; }
+        public ConsoleColor ActiveItemColor { get; set; }
+        public ConsoleColor SelectedItemColor { get; set; }
+        public ConsoleColor ActiveAndSelectedItemColor { get; set; }
         public string AlignText { get; set; } = "Left";
 
         // Controls
@@ -318,9 +338,9 @@ namespace PSCLUITools
         {
             this.BackgroundColor = this.Buffer.PSHost.UI.RawUI.ForegroundColor;
             this.ForegroundColor = this.Buffer.PSHost.UI.RawUI.BackgroundColor;
-            this.ActiveItemForegroundColor = ConsoleColor.Green;
-            this.SelectedItemForegroundColor = ConsoleColor.Magenta;
-            this.ActiveAndSelectedItemForegroundColor = ConsoleColor.Cyan;
+            this.ActiveItemColor = ConsoleColor.Green;
+            this.SelectedItemColor = ConsoleColor.Magenta;
+            this.ActiveAndSelectedItemColor = ConsoleColor.Cyan;
             this.BorderCell = new BufferCell(this.BorderCharacter, 
                 this.ForegroundColor, this.BackgroundColor, 0);
             this.PaddingCellTop = new BufferCell(this.PaddingCharacterTop, 
@@ -331,7 +351,7 @@ namespace PSCLUITools
                 this.ForegroundColor, this.BackgroundColor, 0);
             this.PaddingCellLeft = new BufferCell(this.PaddingCharacterLeft, 
                 this.ForegroundColor, this.BackgroundColor, 0);
-            this.FillCell = new BufferCell(this.FillCharacter, 
+            this.BackgroundCell = new BufferCell(this.BackgroundCharacter, 
                 this.ForegroundColor, this.BackgroundColor, 0);
         }
         
@@ -428,33 +448,64 @@ namespace PSCLUITools
         {
             if (this.Container != null)
             {
+                // TODO Why is SetContainerTOWidestControlWidth checked here?
                 if (this.Container.SetContainerToWidestControlWidth && height > this.Container.GetHeight())
                 {
                     this.Container.SetHeight(height);
                     this.height = height;
+                    Console.WriteLine(1);
                 }
                 else if (height > this.Container.GetHeight())
+                {
                     height = this.Container.GetHeight();
+                    Console.WriteLine(2);
+                }
                 else if (this.GetTopEdgePosition() > this.Container.GetBottomEdgePosition())
+                {
                     // Top edge tried to pass container bottom edge
                     this.height = 0;
+                    Console.WriteLine(3);
+                }
                 else if (this.GetTopEdgePosition() + height > this.Container.GetBottomEdgePosition())
                 {
                     // Bottom edge tried to pass Container bottom edge
                     this.SetBottomEdgePosition(this.Container.GetBottomEdgePosition());
+                    Console.WriteLine(4);
                     return;
                 }
                 else if (this.GetTopEdgePosition() + height < this.Container.GetTopEdgePosition())
+                {
                     // Bottom edge tried to pass container top edge
                     height = 0;
+                    Console.WriteLine(5);
+                }
             }
 
-            // FIX Decreasing two prevents the bottom from escaping outside of the window/buffer. Try 
-            //     to find and fix the actual problem, this is a workaround.
-            if (height >= Console.WindowHeight)
-                height = Console.WindowHeight - 2;
-
             this.height = height;
+
+            // TODO Should really be using .Container here instead but that requires refactoring
+            // TODO PSHostBuffer doesn't seem to have the same issue with the bottom row not showing 
+            // that console buffer does. Either add a if-else statement or two directly here or 
+            // add a method for the below code to keep this method cleaner.
+            if (this.Buffer != null)
+            {
+                int bottomEdgePosition = this.GetBottomEdgePosition() - 1;
+                int bottomEdgePositionBuffer = this.Buffer.GetBottomEdgePosition();
+                if (bottomEdgePosition > bottomEdgePositionBuffer)
+                    // NOTE For some reason the last line that can be written to doesn't actually 
+                    // appear at the bottom, the - 1 at the end of the line fixes that
+                    this.height = this.height - (bottomEdgePosition - bottomEdgePositionBuffer) - 1;
+                else
+                    // NOTE For some reason the last row that can be written to doesn't actually 
+                    // appear at the bottom, decreasing 1 from the height prevents the issue
+                    if (height >= Console.WindowHeight)
+                        height = Console.WindowHeight - 1;
+            } else {
+                // NOTE For some reason the last row that can be written to doesn't actually 
+                // appear at the bottom, decreasing 1 from the height prevents the issue
+                if (height >= Console.WindowHeight)
+                    height = Console.WindowHeight - 1;
+            }
         }
 
         public int GetHeight()
@@ -664,6 +715,8 @@ namespace PSCLUITools
 
         public int GetRightEdgePosition()
         {
+            // FIX There really should probably be a - 1 at the end here 
+            // but but refactoring will be a lot of work:
             return this.Position.X + this.GetWidth();
         }
 
@@ -683,6 +736,8 @@ namespace PSCLUITools
 
         public int GetBottomEdgePosition()
         {
+            // FIX There really should probably be a - 1 at the end here 
+            // but but refactoring will be a lot of work:
             return this.Position.Y + this.GetHeight();
         }
         
@@ -1149,21 +1204,21 @@ namespace PSCLUITools
             else if (element == "activeItem")
             {
                 bufferContentNew = this.Buffer.PSHost.UI.RawUI.NewBufferCellArray(
-                    text.ToArray(), this.ActiveItemForegroundColor, this.BackgroundColor);
+                    text.ToArray(), this.ActiveItemColor, this.BackgroundColor);
                 bufferCellElement = new BufferCellElement(
                     bufferContent, bufferContentNew, coordinates, control, obj);
             }
             else if (element == "selectedItem")
             {
                 bufferContentNew = this.Buffer.PSHost.UI.RawUI.NewBufferCellArray(
-                    text.ToArray(), this.SelectedItemForegroundColor, this.BackgroundColor);
+                    text.ToArray(), this.SelectedItemColor, this.BackgroundColor);
                 bufferCellElement = new BufferCellElement(
                     bufferContent, bufferContentNew, coordinates, control, obj);
             }
             else if (element == "activeAndSelectedItem")
             {
                 bufferContentNew = this.Buffer.PSHost.UI.RawUI.NewBufferCellArray(
-                    text.ToArray(), this.ActiveAndSelectedItemForegroundColor, this.BackgroundColor);
+                    text.ToArray(), this.ActiveAndSelectedItemColor, this.BackgroundColor);
                 bufferCellElement = new BufferCellElement(
                     bufferContent, bufferContentNew, coordinates, control, obj);
             }
@@ -1245,12 +1300,20 @@ namespace PSCLUITools
         internal void SetObjectBufferCellElement(Object findItem, ConsoleColor foregroundColor, 
                                             ConsoleColor backgroundColor)
         {
+            var textHorizontalSpace = this.GetItemHorizontalSpace();
             var bce = this.Buffer.GetBufferCellElement(findItem);
             if (bce != null)
             {
                 List<string> text = new List<string>();
-                var txt = findItem.ToString().PadRight(this.GetItemHorizontalSpace(), this.FillCharacter);
-                text.Add(txt);
+                var outTxt = findItem.ToString();
+                int leftFillCount = 0; // Number of fill characters on left side of text
+                if (this.AlignText == "center" && outTxt.Length < textHorizontalSpace)
+                {
+                    leftFillCount = (textHorizontalSpace - outTxt.Length) / 2;
+                    outTxt = new String(this.BackgroundCharacter, leftFillCount) + outTxt;
+                }
+                outTxt = outTxt.PadRight(this.GetItemHorizontalSpace(), this.BackgroundCharacter);
+                text.Add(outTxt);
                 bce.NewBufferCellArray = this.Buffer.PSHost.UI.RawUI.NewBufferCellArray(
                     text.ToArray(), foregroundColor, backgroundColor);
                 bce.Changed = true;
@@ -1359,7 +1422,8 @@ namespace PSCLUITools
 
         public void RemoveControl(Control control)
         {
-            throw new NotImplementedException();
+            if (this.controls.Contains(control))
+                this.controls.Remove(control);
         }
 
         public new void SetWidth(int width)
@@ -1405,7 +1469,7 @@ namespace PSCLUITools
 
             // Move this Container
             base.SetHorizontalPosition(x);
-            
+
             // Move each Control to its new position
             foreach (var newPos in newControlPositions)
             {
@@ -1415,41 +1479,30 @@ namespace PSCLUITools
 
         public new void SetVerticalPosition(int y)
         {
-            Dictionary<Control, int> newControlPositions = new Dictionary<Control, int>();
             
             var numberOfRows = 0;
-            var direction = "up";
 
             if (y > this.Position.Y)
-            {
                 numberOfRows = y - this.Position.Y;
-                direction = "down";
-            }
             else if (y < this.Position.Y)
                 numberOfRows = this.Position.Y - y;
             else
                 return;
 
-            // Determine a new position for each contained Control
-            foreach (Control control in this.controls)
-            {
-                var newY = control.Position.Y;
-                if (direction == "down")
-                    newY += numberOfRows;
-                else
-                    newY -= numberOfRows;
-
-                newControlPositions.Add(control, newY);
-            }
-
             // Move this Container
             base.SetVerticalPosition(y);
+
+            // Apply changes in Container position and size to controls by 
+            // removing and adding them back in
+            List<Control> temporaryStore = new List<Control>();
+
+            foreach (Control control in this.controls)
+                temporaryStore.Add(control);
             
-            // Move each Control to its new position
-            foreach (var newPos in newControlPositions)
-            {
-                newPos.Key.SetVerticalPosition(newPos.Value);
-            }
+            this.controls = new List<Control>();
+            
+            foreach (Control control in temporaryStore)
+                this.AddControl(control);
         }
 
         public override List<string> GetTextRepresentation()
@@ -1515,7 +1568,7 @@ namespace PSCLUITools
             var count = this.GetWidth() - 2;
             if (count < 0)
                 count = 0;
-            var emptyLine = new String(this.FillCharacter, count);
+            var emptyLine = new String(this.BackgroundCharacter, count);
             var textHorizontalSpace = this.GetItemHorizontalSpace();
 
             if (this.GetWidth() == 0 || this.GetHeight() == 0)
@@ -1557,13 +1610,13 @@ namespace PSCLUITools
                 if (this.AlignText == "center" && outTxt.Length < textHorizontalSpace)
                 {
                     leftFillCount = (textHorizontalSpace - outTxt.Length) / 2;
-                    outTxt = new String(this.FillCharacter, leftFillCount) + outTxt;
+                    outTxt = new String(this.BackgroundCharacter, leftFillCount) + outTxt;
                 }
 
                 if (outTxt.Length > textHorizontalSpace)
                     outTxt = outTxt.Substring(0, textHorizontalSpace);
                 else
-                    outTxt = outTxt.PadRight(textHorizontalSpace, this.FillCharacter);
+                    outTxt = outTxt.PadRight(textHorizontalSpace, this.BackgroundCharacter);
 
                 if (this.BorderLeft && this.BorderRight && this.GetWidth() == 2)
                 {
@@ -1594,7 +1647,7 @@ namespace PSCLUITools
                         emptyLine = emptyLine + this.PaddingCharacterRight;
                     }
                     else
-                        emptyLine = emptyLine + this.FillCharacter;
+                        emptyLine = emptyLine + this.BackgroundCharacter;
                     
                     if (this.BorderLeft && this.PaddingLeft)
                     {
@@ -1612,14 +1665,14 @@ namespace PSCLUITools
                         emptyLine = this.PaddingCharacterLeft + emptyLine;
                     }
                     else
-                        emptyLine = this.FillCharacter + emptyLine;
+                        emptyLine = this.BackgroundCharacter + emptyLine;
 
                     if (!this.BorderRight && !this.BorderLeft && this.GetWidth() == 1)
-                        emptyLine = "" + this.FillCharacter;
+                        emptyLine = "" + this.BackgroundCharacter;
                 }
 
                 if (this.PaddingTop)
-                    outText.Add(emptyLine.Replace(this.FillCharacter, this.PaddingCharacterTop));
+                    outText.Add(emptyLine.Replace(this.BackgroundCharacter, this.PaddingCharacterTop));
 
                 outText.Add(outTxt);
             }
@@ -1647,7 +1700,7 @@ namespace PSCLUITools
             }
 
             if (this.PaddingTop)
-                outText.Add(emptyLine.Replace(this.FillCharacter, this.PaddingCharacterBottom));
+                outText.Add(emptyLine.Replace(this.BackgroundCharacter, this.PaddingCharacterBottom));
             
             if (this.BorderBottom)
                 outText.Add(horizontalBorder);
@@ -1671,9 +1724,9 @@ namespace PSCLUITools
                 if (this.AlignText == "center" && outTxt.Length < textHorizontalSpace)
                 {
                     leftFillCount = (textHorizontalSpace - outTxt.Length) / 2;
-                    outTxt = new String(this.FillCharacter, leftFillCount) + outTxt;
+                    outTxt = new String(this.BackgroundCharacter, leftFillCount) + outTxt;
                 }
-                outTxt = outTxt.PadRight(textHorizontalSpace, this.FillCharacter);
+                outTxt = outTxt.PadRight(textHorizontalSpace, this.BackgroundCharacter);
                 content.Add(outTxt);
             }
 
@@ -1701,7 +1754,7 @@ namespace PSCLUITools
 
             if (GetNumberOfAvailableContentRows() > content.Count)
             {
-                string spaces = new String(this.FillCharacter, textHorizontalSpace);
+                string spaces = new String(this.BackgroundCharacter, textHorizontalSpace);
                 for (int i = 1; i < GetNumberOfAvailableContentRows(); i++)
                     content.Add(spaces);
                 bufferCellElement.Add(NewBufferCellElement("item", content));
@@ -1832,7 +1885,7 @@ namespace PSCLUITools
                     if (cursorPosX > this.CursorPositionLeft)
                     {
                         Console.SetCursorPosition(cursorPosX - 1, this.CursorPositionTop);
-                        Console.Write(this.FillCharacter);
+                        Console.Write(this.BackgroundCharacter);
                         Console.SetCursorPosition(cursorPosX - 1, this.CursorPositionTop);
                     }
                 } else { 
@@ -1857,7 +1910,7 @@ namespace PSCLUITools
             var count = this.GetWidth() - 2;
             if (count < 0)
                 count = 0;
-            var emptyLine = new String(this.FillCharacter, count);
+            var emptyLine = new String(this.BackgroundCharacter, count);
             var textHorizontalSpace = this.GetItemHorizontalSpace();
 
             if (this.GetWidth() == 0 || this.GetHeight() == 0)
@@ -1894,7 +1947,7 @@ namespace PSCLUITools
             if (txt.Length > textHorizontalSpace)
                 txt = txt.Substring(0, textHorizontalSpace);
             else
-                txt = txt.PadRight(textHorizontalSpace, this.FillCharacter);
+                txt = txt.PadRight(textHorizontalSpace, this.BackgroundCharacter);
 
             if (this.BorderLeft && this.BorderRight && this.GetWidth() == 2)
             {
@@ -1924,7 +1977,7 @@ namespace PSCLUITools
                     emptyLine = emptyLine + this.PaddingCharacterRight;
                 }
                 else
-                    emptyLine = emptyLine + this.FillCharacter;
+                    emptyLine = emptyLine + this.BackgroundCharacter;
                 
                 if (this.BorderLeft && this.PaddingLeft)
                 {
@@ -1942,14 +1995,14 @@ namespace PSCLUITools
                     emptyLine = this.PaddingCharacterLeft + emptyLine;
                 }
                 else
-                    emptyLine = this.FillCharacter + emptyLine;
+                    emptyLine = this.BackgroundCharacter + emptyLine;
 
                 if (!this.BorderRight && !this.BorderLeft && this.GetWidth() == 1)
-                    emptyLine = "" + this.FillCharacter;
+                    emptyLine = "" + this.BackgroundCharacter;
             }
 
             if (this.PaddingTop)
-                text.Add(emptyLine.Replace(this.FillCharacter, this.PaddingCharacterTop));
+                text.Add(emptyLine.Replace(this.BackgroundCharacter, this.PaddingCharacterTop));
 
             text.Add(txt);
 
@@ -1976,7 +2029,7 @@ namespace PSCLUITools
             }
 
             if (this.PaddingTop)
-                text.Add(emptyLine.Replace(this.FillCharacter, this.PaddingCharacterBottom));
+                text.Add(emptyLine.Replace(this.BackgroundCharacter, this.PaddingCharacterBottom));
             
             if (this.BorderBottom)
                 text.Add(horizontalBorder);
@@ -1993,7 +2046,7 @@ namespace PSCLUITools
             string txt = this.Text;
             if (txt.Length == 0)
                 txt = " ";
-            txt = txt.PadRight(textHorizontalSpace, this.FillCharacter);
+            txt = txt.PadRight(textHorizontalSpace, this.BackgroundCharacter);
             content.Add(txt);
 
             var bufferCellElement = new List<BufferCellElement>();
@@ -2020,7 +2073,7 @@ namespace PSCLUITools
                 bufferCellElement.Add(NewBufferCellElement("item", content));
             else if (GetNumberOfAvailableContentRows() > 1)
             {
-                string spaces = new String(this.FillCharacter, this.Text.Length);
+                string spaces = new String(this.BackgroundCharacter, this.Text.Length);
                 for (int i = 1; i < GetNumberOfAvailableContentRows(); i++)
                     content.Add(spaces);
                 bufferCellElement.Add(NewBufferCellElement("item", content));
@@ -2295,7 +2348,7 @@ namespace PSCLUITools
             ConsoleColor newForegroundColor;
 
             if (this.SelectedObjects.Contains(this.ActiveObject))
-                newForegroundColor = this.SelectedItemForegroundColor;
+                newForegroundColor = this.SelectedItemColor;
             else
                 newForegroundColor = this.ForegroundColor;
 
@@ -2305,9 +2358,9 @@ namespace PSCLUITools
             this.ActiveObject = this.Objects[itemIndex];
 
             if (this.SelectedObjects.Contains(this.ActiveObject))
-                newForegroundColor = this.ActiveAndSelectedItemForegroundColor;
+                newForegroundColor = this.ActiveAndSelectedItemColor;
             else
-                newForegroundColor = this.ActiveItemForegroundColor;
+                newForegroundColor = this.ActiveItemColor;
 
             if (this.Buffer != null && this.Buffer.PSHost != null)
                 this.SetObjectBufferCellElement(this.ActiveObject, newForegroundColor, this.BackgroundColor);
@@ -2321,9 +2374,9 @@ namespace PSCLUITools
                 this.SelectedObjects.Add(item);
 
             if (this.ActiveObject == item)
-                newForegroundColor = this.ActiveAndSelectedItemForegroundColor;
+                newForegroundColor = this.ActiveAndSelectedItemColor;
             else
-                newForegroundColor = this.SelectedItemForegroundColor;
+                newForegroundColor = this.SelectedItemColor;
 
             if (this.Buffer != null && this.Buffer.PSHost != null)
                 this.SetObjectBufferCellElement(this.ActiveObject, newForegroundColor, this.BackgroundColor);
@@ -2337,7 +2390,7 @@ namespace PSCLUITools
                 this.SelectedObjects.Remove(item);
 
             if (this.ActiveObject == item)
-                newForegroundColor = this.ActiveItemForegroundColor;
+                newForegroundColor = this.ActiveItemColor;
             else
                 newForegroundColor = this.ForegroundColor;
 
@@ -2462,7 +2515,7 @@ namespace PSCLUITools
                 if (this.AlignText == "center" && outTxt.Length < textHorizontalSpace)
                 {
                     leftFillCount = (textHorizontalSpace - outTxt.Length) / 2;
-                    outTxt = new String(this.FillCharacter, leftFillCount) + outTxt;
+                    outTxt = new String(this.BackgroundCharacter, leftFillCount) + outTxt;
                 }
 
                 this.BottomDisplayedObjectIndex = currentItemIndex;
@@ -2472,11 +2525,11 @@ namespace PSCLUITools
                 {
                     if (this.ActiveObject == item && this.SelectedObjects.Contains(item) &&
                         this.Mode != "List")
-                        outTxt = "" + this.SelectedAndActiveCharacter + this.FillCharacter + outTxt;
+                        outTxt = "" + this.SelectedAndActiveCharacter + this.BackgroundCharacter + outTxt;
                     else if (this.ActiveObject == item && this.Mode != "List")
-                        outTxt = "" + this.ActiveCharacter + this.FillCharacter + outTxt;
+                        outTxt = "" + this.ActiveCharacter + this.BackgroundCharacter + outTxt;
                     else if (this.SelectedObjects.Contains(item))
-                        outTxt = "" + this.SelectCharacter + this.FillCharacter + outTxt;
+                        outTxt = "" + this.SelectCharacter + this.BackgroundCharacter + outTxt;
                 }
 
                 var label = new Label(0, 0, outTxt);
@@ -2562,9 +2615,9 @@ namespace PSCLUITools
                 if (this.AlignText == "center" && outTxt.Length < textHorizontalSpace)
                 {
                     leftFillCount = (textHorizontalSpace - outTxt.Length) / 2;
-                    outTxt = new String(this.FillCharacter, leftFillCount) + outTxt;
+                    outTxt = new String(this.BackgroundCharacter, leftFillCount) + outTxt;
                 }
-                outTxt = outTxt.PadRight(textHorizontalSpace, this.FillCharacter);
+                outTxt = outTxt.PadRight(textHorizontalSpace, this.BackgroundCharacter);
                 List<string> content = new List<string>();
                 content.Add(outTxt);
 
