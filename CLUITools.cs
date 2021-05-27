@@ -361,7 +361,8 @@ namespace PSCLUITools
             {
                 if (x + this.GetWidth() > this.Container.GetRightEdgePosition())
                 {
-                    this.Position = new Coordinates(x, this.Position.Y);
+                    // TODO Remove if no problems are encountered:
+                    //this.Position = new Coordinates(x, this.Position.Y);
                     this.SetRightEdgePosition(this.Container.GetRightEdgePosition());
                     return;
                 }
@@ -386,7 +387,8 @@ namespace PSCLUITools
             {
                 if (y + this.GetHeight() > this.Container.GetBottomEdgePosition())
                 {
-                    this.Position = new Coordinates(this.Position.X, y);
+                    // TODO Remove if commenting this out didn't cause problems:
+                    //this.Position = new Coordinates(this.Position.X, y);
                     this.SetBottomEdgePosition(this.Container.GetBottomEdgePosition());
                     return;
                 }
@@ -409,6 +411,7 @@ namespace PSCLUITools
         {
             if (this.Container != null)
             {
+                // TODO REMOVE:
                 if (this.Container.SetContainerToWidestControlWidth && width > this.Container.GetWidth())
                 {
                     this.Container.SetWidth(width);
@@ -448,36 +451,33 @@ namespace PSCLUITools
         {
             if (this.Container != null)
             {
+                // TODO Remove:
                 // TODO Why is SetContainerTOWidestControlWidth checked here?
-                if (this.Container.SetContainerToWidestControlWidth && height > this.Container.GetHeight())
-                {
-                    this.Container.SetHeight(height);
-                    this.height = height;
-                    Console.WriteLine(1);
-                }
-                else if (height > this.Container.GetHeight())
+                //if (this.Container.SetContainerToWidestControlWidth && height > this.Container.GetHeight())
+                //{
+                    //this.Container.SetHeight(height);
+                    //this.height = height;
+                //}
+                //else 
+                if (height > this.Container.GetHeight())
                 {
                     height = this.Container.GetHeight();
-                    Console.WriteLine(2);
                 }
                 else if (this.GetTopEdgePosition() > this.Container.GetBottomEdgePosition())
                 {
                     // Top edge tried to pass container bottom edge
                     this.height = 0;
-                    Console.WriteLine(3);
                 }
                 else if (this.GetTopEdgePosition() + height > this.Container.GetBottomEdgePosition())
                 {
                     // Bottom edge tried to pass Container bottom edge
                     this.SetBottomEdgePosition(this.Container.GetBottomEdgePosition());
-                    Console.WriteLine(4);
                     return;
                 }
                 else if (this.GetTopEdgePosition() + height < this.Container.GetTopEdgePosition())
                 {
                     // Bottom edge tried to pass container top edge
                     height = 0;
-                    Console.WriteLine(5);
                 }
             }
 
@@ -489,7 +489,7 @@ namespace PSCLUITools
             // add a method for the below code to keep this method cleaner.
             if (this.Buffer != null)
             {
-                int bottomEdgePosition = this.GetBottomEdgePosition() - 1;
+                int bottomEdgePosition = this.GetBottomEdgePosition();
                 int bottomEdgePositionBuffer = this.Buffer.GetBottomEdgePosition();
                 if (bottomEdgePosition > bottomEdgePositionBuffer)
                     // NOTE For some reason the last line that can be written to doesn't actually 
@@ -715,9 +715,7 @@ namespace PSCLUITools
 
         public int GetRightEdgePosition()
         {
-            // FIX There really should probably be a - 1 at the end here 
-            // but but refactoring will be a lot of work:
-            return this.Position.X + this.GetWidth();
+            return this.Position.X + this.GetWidth() - 1;
         }
 
         public void SetRightEdgePosition(int x)
@@ -731,14 +729,14 @@ namespace PSCLUITools
             if (x < this.GetLeftEdgePosition())
                 this.SetWidth(0);
             else
+            {
                 this.SetWidth(x - this.GetLeftEdgePosition());
+            }
         }
 
         public int GetBottomEdgePosition()
         {
-            // FIX There really should probably be a - 1 at the end here 
-            // but but refactoring will be a lot of work:
-            return this.Position.Y + this.GetHeight();
+            return this.Position.Y + this.GetHeight() - 1;
         }
         
         public void SetBottomEdgePosition(int y)
@@ -763,7 +761,7 @@ namespace PSCLUITools
 
         public int GetTopBorderPositionBottom()
         {
-            return this.GetTopBorderPositionTop() + 1;
+            return this.GetTopBorderPositionTop();
         }
 
         public int GetTopBorderPositionLeft()
@@ -773,162 +771,182 @@ namespace PSCLUITools
 
         public int GetTopBorderPositionRight()
         {
-            return this.GetRightEdgePosition() - 1;
+            return this.GetRightEdgePosition();
         }
         
         // Get bottom border positions
         public int GetBottomBorderPositionTop()
         {
-            return this.GetBottomEdgePosition() - 1;
+            return this.GetBottomEdgePosition();
         }
 
         public int GetBottomBorderPositionBottom()
         {
-            return this.GetBottomBorderPositionTop() + 1;
+            return this.GetBottomBorderPositionTop();
         }
 
         public int GetBottomBorderPositionLeft()
         {
-            return this.GetTopBorderPositionLeft();
+            return this.GetLeftEdgePosition();
         }
 
         public int GetBottomBorderPositionRight()
         {
-            return this.GetTopBorderPositionRight();
+            return this.GetRightEdgePosition();
         }
         
         // Get left border positions
         public int GetLeftBorderPositionTop()
         {
+            var position = this.GetTopEdgePosition();
             if (this.BorderTop)
-                return this.GetTopBorderPositionBottom();
-            return this.GetTopBorderPositionTop();
+                position++;
+            return position;
         }
 
         public int GetLeftBorderPositionBottom()
         {
+            var position = this.GetBottomEdgePosition();
             if (this.BorderBottom)
-                return this.GetBottomBorderPositionTop() - 1;
-            return this.GetBottomBorderPositionBottom() - 1;
+                position--;
+            return position;
         }
 
         public int GetLeftBorderPositionLeft()
         {
-            return this.GetTopBorderPositionLeft();
+            return this.GetLeftEdgePosition();
         }
 
         public int GetLeftBorderPositionRight()
         {
-            return this.GetLeftBorderPositionLeft() + 1;
+            return this.GetLeftBorderPositionLeft();
         }
 
         public int GetLeftBorderHeight()
         {
             var height = this.GetHeight();
             if (this.BorderTop)
-                height = height - 1;
+                height--;
             if (this.BorderBottom)
-                height = height - 1;
+                height--;
             return height;
         }
 
         // Get right border positions
         public int GetRightBorderPositionTop()
         {
+            var position = this.GetTopEdgePosition();
             if (this.BorderTop)
-                return this.GetTopBorderPositionBottom();
-            return this.GetTopBorderPositionTop();
+                position++;
+            return position;
         }
 
         public int GetRightBorderPositionBottom()
         {
+            var position = this.GetBottomEdgePosition();
             if (this.BorderBottom)
-                return this.GetBottomBorderPositionTop() - 1;
-            return this.GetBottomBorderPositionBottom() - 1;
+                position--;
+            return position;
         }
 
         public int GetRightBorderPositionLeft()
         {
-            return this.GetTopBorderPositionRight();
+            return this.GetRightEdgePosition();
         }
 
         public int GetRightBorderPositionRight()
         {
-            return this.GetRightBorderPositionLeft() + 1;
+            return this.GetRightBorderPositionLeft();
         }
 
         public int GetRightBorderHeight()
         {
-            return this.GetLeftBorderHeight();
+            var height = this.GetHeight();
+            if (this.BorderTop)
+                height--;
+            if (this.BorderBottom)
+                height--;
+            return height;
         }
 
         // Get top padding positions
         public int GetTopPaddingPositionTop()
         {
+            var position = this.GetTopEdgePosition();
             if (this.BorderTop)
-                return this.GetTopBorderPositionTop() + 1;
-            return this.GetTopBorderPositionTop();
+                position++;
+            return position;
         }
 
         public int GetTopPaddingPositionBottom()
         {
-            return this.GetTopPaddingPositionTop() + 1;
+            return this.GetTopPaddingPositionTop();
         }
 
         public int GetTopPaddingPositionLeft()
         {
+            var position = this.GetLeftEdgePosition();
             if (this.BorderLeft)
-                return this.GetTopBorderPositionLeft() + 1;
-            return this.GetTopBorderPositionLeft();
+                position++;
+            return position;
         }
 
         public int GetTopPaddingPositionRight()
         {
+            var position = this.GetRightEdgePosition();
             if (this.BorderRight)
-                return this.GetTopBorderPositionRight() - 1;
-            return this.GetTopBorderPositionRight();
+                position--;
+            return position;
         }
 
         public int GetTopPaddingWidth()
         {
             var width = this.GetWidth();
             if (this.BorderLeft)
-                width = width - 1;
+                width--;
             if (this.BorderRight)
-                width = width - 1;
+                width--;
             return width;
         }
         
         // Get bottom padding positions
         public int GetBottomPaddingPositionTop()
         {
+            var position = this.GetBottomEdgePosition();
             if (this.BorderBottom)
-                return this.GetBottomBorderPositionTop() - 1;
-            return this.GetBottomBorderPositionTop();
+                position--;
+            return position;
         }
 
         public int GetBottomPaddingPositionBottom()
         {
-            return this.GetBottomPaddingPositionTop() + 1;
+            return this.GetBottomPaddingPositionTop();
         }
 
         public int GetBottomPaddingPositionLeft()
         {
+            var position = this.GetLeftEdgePosition();
             if (this.BorderLeft)
-                return this.GetTopBorderPositionLeft() + 1;
-            return this.GetTopBorderPositionLeft();
+                position++;
+            return position;
         }
 
         public int GetBottomPaddingPositionRight()
         {
+            var position = this.GetRightEdgePosition();
             if (this.BorderRight)
-                return this.GetBottomBorderPositionRight() - 1;
-            return this.GetBottomBorderPositionRight();
+                position--;
+            return position;
         }
         
         public int GetBottomPaddingWidth()
         {
-            return this.GetTopPaddingWidth();
+            var width = this.GetWidth();
+            if (this.BorderLeft)
+                width--;
+            if (this.BorderRight)
+                width--;
+            return width;
         }
         
         // Get left padding positions
@@ -936,20 +954,19 @@ namespace PSCLUITools
         {
             var position = this.GetTopEdgePosition();
             if (this.PaddingTop)
-                position = this.GetTopPaddingPositionBottom();
-            else if (this.BorderTop)
-                position = this.GetTopBorderPositionBottom();
+                position++;
+            if (this.BorderTop)
+                position++;
             return position;
-
         }
 
         public int GetLeftPaddingPositionBottom()
         {
-            var position = this.GetBottomEdgePosition() - 1;
+            var position = this.GetBottomEdgePosition();
             if (this.PaddingBottom)
-                position = this.GetBottomPaddingPositionTop() - 1;
+                position--;
             if (this.BorderBottom)
-                position = this.GetBottomBorderPositionTop() - 1;
+                position--;
             return position;
         }
 
@@ -957,26 +974,26 @@ namespace PSCLUITools
         {
             var position = this.GetLeftEdgePosition();
             if (this.BorderLeft)
-                position = position += 1;
+                position++;
             return position;
         }
 
         public int GetLeftPaddingPositionRight()
         {
-            return this.GetLeftPaddingPositionLeft() + 1;
+            return this.GetLeftPaddingPositionLeft();
         }
 
         public int GetLeftPaddingHeight()
         {
             var height = this.GetHeight();
             if (this.BorderTop)
-                height = height - 1;
+                height--;
             if (this.BorderBottom)
-                height = height - 1;
+                height--;
             if (this.PaddingTop)
-                height = height - 1;
+                height--;
             if (this.PaddingBottom)
-                height = height - 1;
+                height--;
             return height;
         }
 
@@ -985,38 +1002,47 @@ namespace PSCLUITools
         {
             var position = this.GetTopEdgePosition();
             if (this.PaddingTop)
-                position = this.GetTopPaddingPositionBottom();
-            else if (this.BorderTop)
-                position = this.GetTopBorderPositionBottom();
+                position++;
+            if (this.BorderTop)
+                position++;
             return position;
         }
 
         public int GetRightPaddingPositionBottom()
         {
-            var position = this.GetBottomEdgePosition() - 1;
+            var position = this.GetBottomEdgePosition();
             if (this.PaddingBottom)
-                position = this.GetBottomPaddingPositionTop() - 1;
+                position--;
             if (this.BorderBottom)
-                position = this.GetBottomBorderPositionTop() - 1;
+                position--;
             return position;
         }
 
         public int GetRightPaddingPositionLeft()
         {
-            var position = this.GetRightEdgePosition() - 1;
+            var position = this.GetRightEdgePosition();
             if (this.BorderRight)
-                position = position -= 1;
+                position--;
             return position;
         }
 
         public int GetRightPaddingPositionRight()
         {
-            return this.GetRightPaddingPositionLeft() + 1;
+            return this.GetRightPaddingPositionLeft();
         }
 
         public int GetRightPaddingHeight()
         {
-            return this.GetLeftPaddingHeight();
+            var height = this.GetHeight();
+            if (this.BorderTop)
+                height--;
+            if (this.BorderBottom)
+                height--;
+            if (this.PaddingTop)
+                height--;
+            if (this.PaddingBottom)
+                height--;
+            return height;
         }
 
         // Get item positions
@@ -1024,35 +1050,35 @@ namespace PSCLUITools
         {
             var position = this.GetTopEdgePosition();
             if (this.PaddingTop)
-                position = this.GetTopPaddingPositionBottom();
-            else if (this.BorderTop)
-                position = this.GetTopBorderPositionBottom();
+                position++;
+            if (this.BorderTop)
+                position++;
             position += itemNumber;
             return position;
         }
 
         public int GetItemPositionBottom(int itemNumber = 0)
         {
-            return this.GetItemPositionTop(itemNumber) + 1;
+            return this.GetItemPositionTop(itemNumber);
         }
 
         public int GetItemPositionLeft()
         {
             var position = this.GetLeftEdgePosition();
             if (this.PaddingLeft)
-                position = this.GetLeftPaddingPositionRight();
-            else if (this.BorderLeft)
-                position = this.GetLeftBorderPositionRight();
+                position++;
+            if (this.BorderLeft)
+                position++;
             return position;
         }
 
         public int GetItemPositionRight()
         {
-            var position = this.GetRightEdgePosition() - 1;
+            var position = this.GetRightEdgePosition();
             if (this.PaddingRight)
-                position = this.GetRightPaddingPositionLeft() - 1;
-            else if (this.PaddingLeft)
-                position = this.GetRightPaddingPositionLeft() - 1;
+                position--;
+            if (this.BorderRight)
+                position--;
             return position;
         }
 
@@ -1060,13 +1086,13 @@ namespace PSCLUITools
         {
             var width = this.GetWidth();
             if (this.BorderLeft)
-                width = width - 1;
+                width--;
             if (this.BorderRight)
-                width = width - 1;
+                width--;
             if (this.PaddingLeft)
-                width = width - 1;
+                width--;
             if (this.PaddingRight)
-                width = width - 1;
+                width--;
             return width;
         }
 
@@ -1352,9 +1378,7 @@ namespace PSCLUITools
             {
                 int y = control.GetWidth();
                 if (y > i)
-                {
                     i = y;
-                }
             }
             return i;
         }
@@ -1369,7 +1393,8 @@ namespace PSCLUITools
 
             if (this.SetContainerToWidestControlWidth)
             {
-                this.SetWidth(control.GetWidth());
+                if (this.GetWidth() < control.GetWidth())
+                    this.SetWidth(control.GetWidth());
                 if (this.SetControlsToContainerWidth)
                     // Set existing member controls to the changed width
                     SetControlsWidth(this.GetWidth());
@@ -1381,8 +1406,13 @@ namespace PSCLUITools
             if (controls.Count == 0 && this.AutoPositionControls)
             {
                 // First control to be added, set position to this containers top left
-                control.SetHorizontalPosition(this.Position.X);
-                control.SetVerticalPosition(this.Position.Y);
+                // TODO .SetHorizontalPosition has... issues. It ends up making the control one 
+                // cell less wide. Possibly SetVerticalPosition tooo. At least when used here:
+                //control.SetHorizontalPosition(this.Position.X);
+                //control.SetVerticalPosition(this.Position.Y);
+                // NOTE On the other hand these work fine:
+                control.SetLeftEdgePosition(this.GetLeftEdgePosition());
+                control.SetTopEdgePosition(this.GetTopEdgePosition());
             }
             else if (this.AutoPositionControls)
             {
@@ -1391,9 +1421,11 @@ namespace PSCLUITools
                 {
                     var lastControl = controls[controls.Count - 1];
                     var left = this.Position.X;
-                    var top = lastControl.GetBottomEdgePosition();
-                    control.SetHorizontalPosition(left);
-                    control.SetVerticalPosition(top);
+                    var top = lastControl.GetBottomEdgePosition() + 1;
+                    //control.SetHorizontalPosition(left);
+                    //control.SetVerticalPosition(top);
+                    control.SetLeftEdgePosition(left);
+                    control.SetTopEdgePosition(top);
                 }
                 else
                 {
@@ -1440,55 +1472,24 @@ namespace PSCLUITools
 
         public new void SetHorizontalPosition(int x)
         {
-            Dictionary<Control, int> newControlPositions = new Dictionary<Control, int>();
-            
-            var numberOfColumns = 0;
-            var direction = "left";
-
-            if (x > this.Position.X)
-            {
-                numberOfColumns = x - this.Position.X;
-                direction = "right";
-            }
-            else if (x < this.Position.X)
-                numberOfColumns = this.Position.X - x;
-            else
-                return;
-
-            // Determine a new position for each contained Control
-            foreach (Control control in this.controls)
-            {
-                var newX = control.Position.X;
-                if (direction == "right")
-                    newX += numberOfColumns;
-                else
-                    newX -= numberOfColumns;
-
-                newControlPositions.Add(control, newX);
-            }
-
             // Move this Container
             base.SetHorizontalPosition(x);
 
-            // Move each Control to its new position
-            foreach (var newPos in newControlPositions)
-            {
-                newPos.Key.SetHorizontalPosition(newPos.Value);
-            }
+            // Apply changes in Container position and size to controls by 
+            // removing and adding them back in
+            List<Control> temporaryStore = new List<Control>();
+
+            foreach (Control control in this.controls)
+                temporaryStore.Add(control);
+            
+            this.controls = new List<Control>();
+            
+            foreach (Control control in temporaryStore)
+                this.AddControl(control);
         }
 
         public new void SetVerticalPosition(int y)
         {
-            
-            var numberOfRows = 0;
-
-            if (y > this.Position.Y)
-                numberOfRows = y - this.Position.Y;
-            else if (y < this.Position.Y)
-                numberOfRows = this.Position.Y - y;
-            else
-                return;
-
             // Move this Container
             base.SetVerticalPosition(y);
 

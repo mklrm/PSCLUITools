@@ -145,12 +145,13 @@ namespace PSCLUITools
                 var buffer = new Buffer(Host);
                 int left = 0;
                 int top = 0;
-                var container = new Container(left, top, Console.WindowWidth, Console.WindowHeight);
+                //var container = new Container(left, top, Console.WindowWidth, Console.WindowHeight);
+                var container = new Container(left, top, 0, 0);
                 buffer.Add(container);
 
+                var label = new Label(0, 0, Title);
                 if (Title.Count > 0)
                 {
-                    var label = new Label(0, 0, Title);
                     label.AddBorder("all");
                     label.RemoveBorder("bottom");
                     label.AddPadding("left");
@@ -188,12 +189,14 @@ namespace PSCLUITools
                 buffer.UpdateAll();
                 buffer.Write();
                 
+                Console.WriteLine(container.GetWidth());
+                Console.WriteLine(menu.GetWidth());
                 return menu.ReadKey();
             }
 
             List<Object> result = NewMenu();           
 
-            if (Mode == "Multiselect" && ListSelected.IsPresent)
+            if (result != null && Mode == "Multiselect" && ListSelected.IsPresent)
             {
                 if (result.Count > 0)
                     InputObject = result;
@@ -211,7 +214,7 @@ namespace PSCLUITools
                 if (result.Count > 0)
                     WriteObject(output);
             }
-            else
+            else if (result != null)
                 WriteObject(result);
         }
     }
