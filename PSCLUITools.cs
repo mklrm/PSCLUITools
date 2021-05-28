@@ -141,8 +141,8 @@ namespace PSCLUITools
 
             List<Object> NewMenu()
             {
-                //var buffer = new Buffer();
-                var buffer = new Buffer(Host);
+                var buffer = new Buffer();
+                //var buffer = new Buffer(Host);
                 int left = 0;
                 int top = 0;
                 //var container = new Container(left, top, Console.WindowWidth, Console.WindowHeight);
@@ -189,8 +189,6 @@ namespace PSCLUITools
                 buffer.UpdateAll();
                 buffer.Write();
                 
-                Console.WriteLine(container.GetWidth());
-                Console.WriteLine(menu.GetWidth());
                 return menu.ReadKey();
             }
 

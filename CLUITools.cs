@@ -359,10 +359,9 @@ namespace PSCLUITools
         {
             if (this.Container != null)
             {
-                if (x + this.GetWidth() > this.Container.GetRightEdgePosition())
+                if (x + this.GetWidth() - 1 > this.Container.GetRightEdgePosition())
                 {
-                    // TODO Remove if no problems are encountered:
-                    //this.Position = new Coordinates(x, this.Position.Y);
+                    this.Position = new Coordinates(x, this.Position.Y);
                     this.SetRightEdgePosition(this.Container.GetRightEdgePosition());
                     return;
                 }
@@ -385,10 +384,9 @@ namespace PSCLUITools
         {
             if (this.Container != null)
             {
-                if (y + this.GetHeight() > this.Container.GetBottomEdgePosition())
+                if (y + this.GetHeight() - 1 > this.Container.GetBottomEdgePosition())
                 {
-                    // TODO Remove if commenting this out didn't cause problems:
-                    //this.Position = new Coordinates(this.Position.X, y);
+                    this.Position = new Coordinates(this.Position.X, y);
                     this.SetBottomEdgePosition(this.Container.GetBottomEdgePosition());
                     return;
                 }
@@ -411,7 +409,6 @@ namespace PSCLUITools
         {
             if (this.Container != null)
             {
-                // TODO REMOVE:
                 if (this.Container.SetContainerToWidestControlWidth && width > this.Container.GetWidth())
                 {
                     this.Container.SetWidth(width);
@@ -422,7 +419,7 @@ namespace PSCLUITools
                 else if (this.GetLeftEdgePosition() > this.Container.GetRightEdgePosition())
                     // Left edge tried to pass container right edge
                     width = 0;
-                else if (this.GetLeftEdgePosition() + width > this.Container.GetRightEdgePosition())
+                else if (this.GetLeftEdgePosition() + width - 1 > this.Container.GetRightEdgePosition())
                 {
                     // Right edge tried to pass Container right edge
                     this.SetRightEdgePosition(this.Container.GetRightEdgePosition());
@@ -452,7 +449,8 @@ namespace PSCLUITools
             if (this.Container != null)
             {
                 // TODO Remove:
-                // TODO Why is SetContainerTOWidestControlWidth checked here?
+                // TODO Why is SetContainerTOWidestControlWidth checked here? Remove if commenting it out 
+                // doesn't seem to cause any issues
                 //if (this.Container.SetContainerToWidestControlWidth && height > this.Container.GetHeight())
                 //{
                     //this.Container.SetHeight(height);
@@ -460,14 +458,10 @@ namespace PSCLUITools
                 //}
                 //else 
                 if (height > this.Container.GetHeight())
-                {
                     height = this.Container.GetHeight();
-                }
                 else if (this.GetTopEdgePosition() > this.Container.GetBottomEdgePosition())
-                {
                     // Top edge tried to pass container bottom edge
                     this.height = 0;
-                }
                 else if (this.GetTopEdgePosition() + height > this.Container.GetBottomEdgePosition())
                 {
                     // Bottom edge tried to pass Container bottom edge
@@ -475,10 +469,8 @@ namespace PSCLUITools
                     return;
                 }
                 else if (this.GetTopEdgePosition() + height < this.Container.GetTopEdgePosition())
-                {
                     // Bottom edge tried to pass container top edge
                     height = 0;
-                }
             }
 
             this.height = height;
@@ -1395,24 +1387,22 @@ namespace PSCLUITools
             {
                 if (this.GetWidth() < control.GetWidth())
                     this.SetWidth(control.GetWidth());
+
                 if (this.SetControlsToContainerWidth)
                     // Set existing member controls to the changed width
                     SetControlsWidth(this.GetWidth());
             }
 
             if (this.SetControlsToContainerWidth)
+            {
                 control.SetWidth(this.GetWidth());
+            }
 
             if (controls.Count == 0 && this.AutoPositionControls)
             {
                 // First control to be added, set position to this containers top left
-                // TODO .SetHorizontalPosition has... issues. It ends up making the control one 
-                // cell less wide. Possibly SetVerticalPosition tooo. At least when used here:
-                //control.SetHorizontalPosition(this.Position.X);
-                //control.SetVerticalPosition(this.Position.Y);
-                // NOTE On the other hand these work fine:
-                control.SetLeftEdgePosition(this.GetLeftEdgePosition());
-                control.SetTopEdgePosition(this.GetTopEdgePosition());
+                control.SetHorizontalPosition(this.Position.X);
+                control.SetVerticalPosition(this.Position.Y);
             }
             else if (this.AutoPositionControls)
             {
@@ -1422,10 +1412,8 @@ namespace PSCLUITools
                     var lastControl = controls[controls.Count - 1];
                     var left = this.Position.X;
                     var top = lastControl.GetBottomEdgePosition() + 1;
-                    //control.SetHorizontalPosition(left);
-                    //control.SetVerticalPosition(top);
-                    control.SetLeftEdgePosition(left);
-                    control.SetTopEdgePosition(top);
+                    control.SetHorizontalPosition(left);
+                    control.SetVerticalPosition(top);
                 }
                 else
                 {
@@ -1679,6 +1667,7 @@ namespace PSCLUITools
             }
 
             var numberOfEmptyLines = this.GetHeight();
+            numberOfEmptyLines -= text.Count;
 
             if (this.BorderTop)
                 numberOfEmptyLines--;
@@ -1700,7 +1689,7 @@ namespace PSCLUITools
                 }
             }
 
-            if (this.PaddingTop)
+            if (this.PaddingBottom)
                 outText.Add(emptyLine.Replace(this.BackgroundCharacter, this.PaddingCharacterBottom));
             
             if (this.BorderBottom)
