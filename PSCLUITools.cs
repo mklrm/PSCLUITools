@@ -141,15 +141,57 @@ namespace PSCLUITools
 
             List<Object> NewMenu()
             {
-                var buffer = new Buffer();
-                //var buffer = new Buffer(Host);
-                int left = 0;
-                int top = 0;
-                //var container = new Container(left, top, Console.WindowWidth, Console.WindowHeight);
-                var container = new Container(left, top, 0, 0);
-                buffer.Add(container);
+                // TODO Require a buffer in every constructor of a Container and require a container 
+                // in every constructor of a non-Container Control to prevent problems like in Control.SetWidth 
+                // where it has nothing but Console.*Width to fall on for checking boundaries.
+                
+                // TODO Should look into separating Container from the other Controls as this might well 
+                // end up decreasing potential complications. Depends on if an appreciable number of methods 
+                // defined in Control are actually called through Container somewhere.
+                // List of methods and properties that would need to be directly implemented in Container:
+                //  Properties:
+                //      Buffer
+                //      Position
+                //      width
+                //
+                //  Methods:
+                //      SetHeight(int height)
+                //      GetRightEdgePosition()
+                //      GetLeftEdgePosition()
+                //      GetBottomEdgePosition()
+                //      GetTopEdgePosition()
+                //      GetWidth()
+                //      GetHeight()
+                //      SetHeight()
+                //      SetHorizontalPosition() [code would have to be copied from the base method]
+                //      SetVerticalPosition() [code would have to be copied from the base method]
+                //
+                //  NOTE Buffer will have to be refactored when Container is no longer a Control 
+                // 
+                // AND on the other hand now I in theory get for free the functionality that a Container 
+                // can contain a Container. I doubt it works right yet but it might.
+                //
+                // So this would be entirely doable but now I doubt whether it would actually be helpful 
+                // at all and perhaps it would even be detrimental.
+                //
+                // Hold the thought for now.
+                
+                // TODO Also maybe it wouldn't be a bad idea to  add Containers into Buffer in the same 
+                // way Controls are added into a Container. Now Containers and other Controls are added to 
+                // the buffer very similarly but it would kind of simplify things if only Containers were.
+                // ON THE OTHER HAND, I will want to be able to add Containers into Containers and will 
+                // need to be careful about not complicating that beforehand.
+                
+                // TODO Stop using SetHeight and SetWidth in constructors and see about maybe simplifying 
+                // the methods. Same goes for SetHorizontalPosition and SetVerticalPosition. The values 
+                // set in the constructor are initial ones that will be later mangled. When nothing everything 
+                // is still not done being initialized etc. the methods will only cause grief.
 
-                var label = new Label(0, 0, Title);
+                //var buffer = new Buffer();
+                var buffer = new Buffer(Host);
+                var container = new Container(buffer);
+
+                var label = new Label(container, 0, 0, Title);
                 if (Title.Count > 0)
                 {
                     label.AddBorder("all");
@@ -158,17 +200,24 @@ namespace PSCLUITools
                     label.AddPadding("right");
                     if (AlignTitle != null)
                         label.AlignText = AlignTitle;
-                    container.AddControl(label);
+                    //container.AddControl(label);
                 }
 
-                var menu = new Menu(0, 0, InputObject);
-                menu.Mode = Mode;
-                menu.AddBorder("all");
-                menu.AddPadding("all");
-                if (AlignText != null)
-                    menu.AlignText = AlignText;
+                //var menu = new Menu(container, 0, 0, InputObject);
+                //menu.Mode = Mode;
+                //menu.AddBorder("all");
+                //menu.AddPadding("all");
+                //if (AlignText != null)
+                    //menu.AlignText = AlignText;
 
-                container.AddControl(menu);
+                //container.AddControl(menu);
+
+                container.UpdateStructure(); // TODO Maybe add methods like Container.UpdateWidth() that gets 
+                                             // called from GetWidth() and only updates the Width of a container 
+                                             // and Controls attached to it. Simplify SetWidth() and SetHeight() 
+                                             // as much as possible, let the Container handle Control size.
+                                             // Perhaps even take all logic out of resizing and moving around 
+                                             // from Controls and just let the Container handle it.
 
                 if (LeftPosition > -1)
                     container.SetHorizontalPosition(LeftPosition);
@@ -189,31 +238,32 @@ namespace PSCLUITools
                 buffer.UpdateAll();
                 buffer.Write();
                 
-                return menu.ReadKey();
+                //return menu.ReadKey();
+                return new List<Object>();
             }
 
             List<Object> result = NewMenu();           
 
-            if (result != null && Mode == "Multiselect" && ListSelected.IsPresent)
-            {
-                if (result.Count > 0)
-                    InputObject = result;
-                else
-                {
-                    InputObject = new List<Object>();
-                    InputObject.Add("You didn't select any items");
-                }
+            //if (result != null && Mode == "Multiselect" && ListSelected.IsPresent)
+            //{
+                //if (result.Count > 0)
+                    //InputObject = result;
+                //else
+                //{
+                    //InputObject = new List<Object>();
+                    //InputObject.Add("You didn't select any items");
+                //}
 
-                Mode = "List";
-                Title = new List<string>();
-                Title.Add("Selected items");
-                List<Object> output = NewMenu();
+                //Mode = "List";
+                //Title = new List<string>();
+                //Title.Add("Selected items");
+                //List<Object> output = NewMenu();
 
-                if (result.Count > 0)
-                    WriteObject(output);
-            }
-            else if (result != null)
-                WriteObject(result);
+                //if (result.Count > 0)
+                    //WriteObject(output);
+            //}
+            //else if (result != null)
+                //WriteObject(result);
         }
     }
 }
