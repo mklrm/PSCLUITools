@@ -8,32 +8,30 @@ namespace PSCLUITools
 {
     class Buffer : PSCmdlet
     {
-        internal static int left = Console.WindowLeft;
-        internal static int top = Console.WindowTop;
-        internal static Coordinates position = new Coordinates(left, top);
-        internal static int width = Console.WindowWidth;
-        internal static int height = Console.WindowHeight;
-        //protected Container container = new Container(left, top, width, height);
-        internal List<Container> containers = new List<Container>();
-        internal PSHost PSHost { get; set;}
+        internal int left = Console.WindowLeft;
+        internal int top = Console.WindowTop;
+        internal Coordinates position { get; set; }
 
-        protected static char[,] screenBufferArray = new char[width,height];
+        internal int width = Console.WindowWidth;
+        internal int height = Console.WindowHeight;
+
+        protected char[,] screenBufferArray { get; set; }
+        internal PSHost PSHost { get; set; }
+
+        internal List<Container> containers = new List<Container>();
         internal List<BufferCellElement> bufferCellElements = new List<BufferCellElement>();
         protected List<Control> BufferedControls = new List<Control>();
 
         public Buffer()
         {
-            //this.container.SetContainerToWidestControlWidth = false;
-            //this.container.SetControlsToContainerWidth = false;
-            //this.container.AutoPositionControls = false;
+            this.position = new Coordinates(this.left, this.top);
+            this.screenBufferArray = new char[this.width, this.height];
         }
 
         public Buffer(PSHost host)
         {
             this.PSHost = host;
-            //this.container.SetContainerToWidestControlWidth = false;
-            //this.container.SetControlsToContainerWidth = false;
-            //this.container.AutoPositionControls = false;
+            this.position = new Coordinates(this.left, this.top);
         }
 
         internal int GetWidth()
@@ -43,7 +41,16 @@ namespace PSCLUITools
 
         internal int GetHeight()
         {
-            return height;
+            int hght = this.height;
+            // TODO Sometimes the last line on a console buffer is overwritten by 
+            // the command prompt. Lying about the height of the buffer fixes this 
+            // but will sometimes obviously produce a Control shortened by one row.
+            // Maybe I could move the prompt down by a row or something instead or 
+            // at least only lie about the height when needed. Maybe even get rid 
+            // of the prompt while running.
+            if (this.PSHost == null)
+                hght--;
+            return hght;
         }
 
         internal int GetLeftEdgePosition()
@@ -132,9 +139,7 @@ namespace PSCLUITools
         public void UpdateAll()
         {
             foreach (Control control in this.containers)
-            {
                 this.Update(control);
-            }
         }
 
         public void Write()
@@ -423,36 +428,29 @@ namespace PSCLUITools
 
         public void SetWidth(int width)
         {
-            if (this.Container != null)
-            {
-                if (this.Container.SetContainerToWidestControlWidth && width > this.Container.GetWidth())
-                {
-                    this.Container.SetWidth(width);
-                    this.width = width;
-                }
-                else if (width > this.Container.GetWidth())
-                    width = this.Container.GetWidth();
-                else if (this.GetLeftEdgePosition() > this.Container.GetRightEdgePosition())
-                    // Left edge tried to pass container right edge
-                    width = 0;
-                else if (this.GetLeftEdgePosition() + width - 1 > this.Container.GetRightEdgePosition())
-                {
-                    // Right edge tried to pass Container right edge
-                    this.SetRightEdgePosition(this.Container.GetRightEdgePosition());
-                    return;
-                }
-                else if (this.GetRightEdgePosition() - 1 < this.Container.GetLeftEdgePosition())
-                    // Right edge tried to pass Container left edge
-                    width = 0;
-            }
-
-            // FIX I do not want this here but it works as a workaround for now. The buffer is the only place 
-            //     that Console.WindowWidth should be used so it can be just changed to something else there. 
-            //     Just check with the width of the buffer, however that's going to end up being done...
-            if (width > Console.WindowWidth)
-                width = Console.WindowWidth;
-
             this.width = width;
+
+            Buffer constrainer;
+            var container = this as Container;
+
+            if (container != null)
+                constrainer = container.Buffer;
+            else if (this.Container != null && this.Container.Buffer != null)
+                constrainer = this.Container.Buffer;
+            else
+                // TODO Added this for Menu.TextRepresentation(), when it calls new Label without 
+                // passing a buffer and then calls SetWidth. Either add this failsafe to SetHeight 
+                // too or cook up some better fix.
+                constrainer = new Buffer();
+
+            if (width > constrainer.GetWidth())
+                width = constrainer.GetWidth();
+
+            if (this.GetLeftEdgePosition() > constrainer.GetLeftEdgePosition())
+                this.SetLeftEdgePosition(constrainer.GetLeftEdgePosition());
+
+            if (this.GetRightEdgePosition() > constrainer.GetRightEdgePosition())
+                this.SetRightEdgePosition(constrainer.GetRightEdgePosition());
         }
 
         public int GetWidth()
@@ -462,68 +460,24 @@ namespace PSCLUITools
 
         public void SetHeight(int height)
         {
-            if (this.Container != null)
-            {
-                // TODO Remove:
-                // TODO Why is SetContainerTOWidestControlWidth checked here? Remove if commenting it out 
-                // doesn't seem to cause any issues
-                //if (this.Container.SetContainerToWidestControlWidth && height > this.Container.GetHeight())
-                //{
-                    //this.Container.SetHeight(height);
-                    //this.height = height;
-                //}
-                //else 
-                if (height > this.Container.GetHeight())
-                    height = this.Container.GetHeight();
-                else if (this.GetTopEdgePosition() > this.Container.GetBottomEdgePosition() - 1)
-                    // Top edge tried to pass container bottom edge
-                    this.height = 0;
-                else if (this.GetTopEdgePosition() + height > this.Container.GetBottomEdgePosition())
-                {
-                    // Bottom edge tried to pass Container bottom edge
-                    this.SetBottomEdgePosition(this.Container.GetBottomEdgePosition());
-                    return;
-                }
-                else if (this.GetBottomEdgePosition() - 1 < this.Container.GetTopEdgePosition())
-                    // Bottom edge tried to pass container top edge
-                    height = 0;
-            }
-
             this.height = height;
 
-            // TODO Should really be using .Container here instead but that requires refactoring
-            // TODO PSHostBuffer doesn't seem to have the same issue with the bottom row not showing 
-            // that console buffer does. Either add a if-else statement or two directly here or 
-            // add a method for the below code to keep this method cleaner.
-            // FIX All of this going on below is getting ridiculous
-
+            Buffer constrainer;
             var container = this as Container;
-            Buffer buffer;
 
             if (container != null)
-                buffer = container.Buffer;
-            else 
-                buffer = this.Container.Buffer;
-            
-            if (buffer != null)
-            {
-                int bottomEdgePosition = this.GetBottomEdgePosition();
-                int bottomEdgePositionBuffer = buffer.GetBottomEdgePosition();
-                if (bottomEdgePosition > bottomEdgePositionBuffer)
-                    // NOTE For some reason the last line that can be written to doesn't actually 
-                    // appear at the bottom, the - 1 at the end of the line fixes that
-                    this.height = this.height - (bottomEdgePosition - bottomEdgePositionBuffer) - 1;
-                else
-                    // NOTE For some reason the last row that can be written to doesn't actually 
-                    // appear at the bottom, decreasing 1 from the height prevents the issue
-                    if (height >= Console.WindowHeight)
-                        height = Console.WindowHeight - 1;
-            } else {
-                // NOTE For some reason the last row that can be written to doesn't actually 
-                // appear at the bottom, decreasing 1 from the height prevents the issue
-                if (height >= Console.WindowHeight)
-                    height = Console.WindowHeight - 1;
-            }
+                constrainer = container.Buffer;
+            else
+                constrainer = this.Container.Buffer;
+
+            if (height > constrainer.GetHeight())
+                height = constrainer.GetHeight();
+
+            if (this.GetTopEdgePosition() > constrainer.GetTopEdgePosition())
+                this.SetTopEdgePosition(constrainer.GetTopEdgePosition());
+
+            if (this.GetBottomEdgePosition() > constrainer.GetBottomEdgePosition())
+                this.SetBottomEdgePosition(constrainer.GetBottomEdgePosition());
         }
 
         public int GetHeight()
@@ -1381,8 +1335,8 @@ namespace PSCLUITools
         {
             this.Buffer = buffer;
             this.Buffer.Add(this);
-            this.SetHorizontalPosition(0);
-            this.SetVerticalPosition(0);
+            this.SetHorizontalPosition(this.Buffer.GetLeftEdgePosition());
+            this.SetVerticalPosition(this.Buffer.GetTopEdgePosition());
             this.SetWidth(this.Buffer.GetWidth());
             this.SetHeight(this.Buffer.GetHeight());
         }
@@ -1416,7 +1370,7 @@ namespace PSCLUITools
         internal void AddControl(Control control)
         {
             control.Container = this;
-            controls.Add(control);
+            this.controls.Add(control);
         }
 
         internal void UpdateStructure()
@@ -1450,29 +1404,32 @@ namespace PSCLUITools
             if (this.SetContainerToCombinedControlHeight)
                 this.SetHeight(this.Buffer.GetHeight());
 
+            if (this.SetContainerToWidestControlWidth)
+                this.SetWidth(0);
+
             int index = 0;
 
             foreach (Control control in this.controls)
             {
-                AutoPositionControl(control, index);
 
                 if (this.SetContainerToWidestControlWidth)
                 {
-                    if (this.GetWidth() != control.GetWidth())
+                    if (this.GetWidth() < control.GetWidth())
                         this.SetWidth(control.GetWidth());
-
-                    if (this.SetControlsToContainerWidth)
-                        // Set existing member controls to the changed width
-                        SetControlsWidth(this.GetWidth());
                 }
 
-                if (this.SetControlsToContainerWidth)
-                    control.SetWidth(this.GetWidth());
+                AutoPositionControl(control, index);
 
                 if (control.GetBottomEdgePosition() > this.GetBottomEdgePosition())
                     control.SetBottomEdgePosition(this.GetBottomEdgePosition());
 
                 index++;
+            }
+
+            if (this.SetControlsToContainerWidth)
+            {
+                foreach (Control control in this.controls)
+                    control.SetWidth(this.GetWidth());
             }
 
             if (this.SetContainerToCombinedControlHeight)
@@ -1504,60 +1461,6 @@ namespace PSCLUITools
         {
             if (this.controls.Contains(control))
                 this.controls.Remove(control);
-        }
-
-        internal new void SetWidth(int width)
-        {
-            if (width < 0)
-                width = 0;
-
-            this.width = width;
-
-            if (this.SetControlsToContainerWidth)
-                // Set existing member controls to the new width
-                SetControlsWidth(this.GetWidth());
-        }
-
-        internal new void SetHorizontalPosition(int x)
-        {
-            // Move this Container
-            base.SetHorizontalPosition(x);
-
-            // TODO Remove all of the below, shouldn't be doing anything anymore, then 
-            // remove this whole method:
-
-            // Apply changes in Container position and size to controls by 
-            // removing and adding them back in
-            List<Control> temporaryStore = new List<Control>();
-
-            foreach (Control control in this.controls)
-                temporaryStore.Add(control);
-            
-            this.controls = new List<Control>();
-            
-            foreach (Control control in temporaryStore)
-                this.AddControl(control);
-        }
-
-        internal new void SetVerticalPosition(int y)
-        {
-            // Move this Container
-            base.SetVerticalPosition(y);
-
-            // TODO Remove all of the below, shouldn't be doing anything anymore, then 
-            // remove this whole method:
-
-            // Apply changes in Container position and size to controls by 
-            // removing and adding them back in
-            List<Control> temporaryStore = new List<Control>();
-
-            foreach (Control control in this.controls)
-                temporaryStore.Add(control);
-            
-            this.controls = new List<Control>();
-            
-            foreach (Control control in temporaryStore)
-                this.AddControl(control);
         }
 
         public void SetHorizontalPositionToMiddle()
@@ -1595,7 +1498,7 @@ namespace PSCLUITools
 
     class Label : Control
     {
-        private List<string> Text { get; set; } = new List<string>();
+        internal List<string> Text { get; set; } = new List<string>();
 
         internal Label(int left, int top, string text) : base()
         {
@@ -1625,8 +1528,6 @@ namespace PSCLUITools
         
         internal override List<string> GetTextRepresentation()
         {
-            this.Container.UpdateStructure();
-
             var outText = new List<string>();
             var text = this.Text;
             var horizontalBorder = new string(this.BorderCharacter, this.GetWidth());
@@ -1759,7 +1660,7 @@ namespace PSCLUITools
 
             if (numberOfEmptyLines > 1)
             {
-                for (var i = 1; i < numberOfEmptyLines; i++)
+                for (var i = 1; i <= numberOfEmptyLines; i++)
                 {
                     outText.Add(emptyLine);
                 }
@@ -1770,7 +1671,7 @@ namespace PSCLUITools
             
             if (this.BorderBottom)
                 outText.Add(horizontalBorder);
-
+            
             return outText;
         }
         
@@ -2183,9 +2084,7 @@ namespace PSCLUITools
             {
                 var objLength = objects[i].ToString().Length;
                 if (objLength > this.GetWidth())
-                {
                     this.width = objLength;
-                }
             }
 
             this.height = objects.Count;
@@ -2214,11 +2113,16 @@ namespace PSCLUITools
 
         public List<Object> ReadKey()
         {
+            void Update()
+            {
+                this.Container.Buffer.UpdateAll();
+                this.Container.Buffer.Write();
+            }
+
             var searchTerm = "";
             var item = this.ActiveObject;
             while (true)
             {
-                // TODO Remove all of the this.Buffer references if possible
                 var key = Console.ReadKey(true).Key; // true hides key strokes
                 switch (key.ToString())
                 {
@@ -2227,34 +2131,28 @@ namespace PSCLUITools
                         if (this.Mode == "List")
                             break;
                         this.SetPreviousItemActive();
-                        //this.Buffer.UpdateAll();
-                        //this.Buffer.Write();
-                        this.Container.Buffer.UpdateAll();
-                        this.Container.Buffer.Write();
+                        Update();
                         break;
                     case KeyDown0:
                     case KeyDown1:
                         if (this.Mode == "List")
                             break;
                         this.SetNextItemActive();
-                        //this.Buffer.UpdateAll();
-                        //this.Buffer.Write();
-                        this.Container.Buffer.UpdateAll();
-                        this.Container.Buffer.Write();
+                        Update();
                         break;
                     case KeyPageUp:
+                        // TODO There's more of a flash effect on PSHost than there probably 
+                        // needs to as in it's likely restoring the saved buffer area before 
+                        // writing the new content when it doesn't need to restore
                         this.LoadPreviousPage();
-                        //this.Buffer.UpdateAll();
-                        //this.Buffer.Write();
-                        this.Container.Buffer.UpdateAll();
-                        this.Container.Buffer.Write();
+                        Update();
                         break;
                     case KeyPageDown:
+                        // TODO There's more of a flash effect on PSHost than there probably 
+                        // needs to as in it's likely restoring the saved buffer area before 
+                        // writing the new content when it doesn't need to restore
                         this.LoadNextPage();
-                        //this.Buffer.UpdateAll();
-                        //this.Buffer.Write();
-                        this.Container.Buffer.UpdateAll();
-                        this.Container.Buffer.Write();
+                        Update();
                         break;
                     case KeyFind:
                         if (this.Mode == "List")
@@ -2273,11 +2171,8 @@ namespace PSCLUITools
                         // TODO Figure some other way to do this (well, going to have to create a 
                         // buffer for the searchBox):
                         //this.Container.Buffer.Add(searchBox);  // TODO : Maybe make it possible to float the 
-                                                     // control in the same container instead.
-                        //this.Buffer.UpdateAll();
-                        //this.Buffer.Write();
-                        this.Container.Buffer.UpdateAll();
-                        this.Container.Buffer.Write();
+                                                                 // control in the same container instead.
+                        Update();
                         searchTerm = searchBox.ReadKey();
                         //this.Buffer.Remove(searchBox);
                         //this.Buffer.Write();
@@ -2299,10 +2194,7 @@ namespace PSCLUITools
                         if (this.Objects.Count > this.GetNumberOfAvailableRowsForItems() &&
                             !this.DisplayedObjects.Contains(item))
                             this.MoveActiveObjectToMiddle();
-                        //this.Buffer.UpdateAll();
-                        //this.Buffer.Write();
-                        this.Container.Buffer.UpdateAll();
-                        this.Container.Buffer.Write();
+                        Update();
                         break;
                     case KeyFindNext:
                         if (this.Mode == "List")
@@ -2313,10 +2205,7 @@ namespace PSCLUITools
                         if (this.Objects.Count > this.GetNumberOfAvailableRowsForItems() &&
                             !this.DisplayedObjects.Contains(item))
                             this.MoveActiveObjectToMiddle();
-                        //this.Buffer.UpdateAll();
-                        //this.Buffer.Write();
-                        this.Container.Buffer.UpdateAll();
-                        this.Container.Buffer.Write();
+                        Update();
                         break;
                     case KeyFindPrevious:
                         if (this.Mode == "List")
@@ -2327,10 +2216,7 @@ namespace PSCLUITools
                         if (this.Objects.Count > this.GetNumberOfAvailableRowsForItems() &&
                             !this.DisplayedObjects.Contains(item))
                             this.MoveActiveObjectToMiddle();
-                        //this.Buffer.UpdateAll();
-                        //this.Buffer.Write();
-                        this.Container.Buffer.UpdateAll();
-                        this.Container.Buffer.Write();
+                        Update();
                         break;
                     case KeySelect:
                         if (this.Mode == "List")
@@ -2341,10 +2227,7 @@ namespace PSCLUITools
                             this.AddSelectedObject(this.ActiveObject);
                         if (this.Mode == "Default")
                             return this.SelectedObjects;
-                        //this.Buffer.UpdateAll();
-                        //this.Buffer.Write();
-                        this.Container.Buffer.UpdateAll();
-                        this.Container.Buffer.Write();
+                        Update();
                         break;
                     case KeyConfirm:
                         if (this.Mode == "List")
@@ -2511,7 +2394,9 @@ namespace PSCLUITools
             this.TopDisplayedObjectIndex = this.BottomDisplayedObjectIndex + 1;
             if (this.TopDisplayedObjectIndex == this.Objects.Count)
                 this.TopDisplayedObjectIndex = 0;
+
             this.Container.Buffer.Clear();
+
             if (this.Mode != "List")
                 this.ActiveObject = this.Objects[this.TopDisplayedObjectIndex];
         }
@@ -2540,6 +2425,7 @@ namespace PSCLUITools
             this.BottomDisplayedObjectIndex = newBottomDisplayedObjectIndex;
 
             this.Container.Buffer.Clear();
+
             if (this.Mode != "List")
                 this.ActiveObject = this.Objects[this.BottomDisplayedObjectIndex];
         }
@@ -2572,17 +2458,21 @@ namespace PSCLUITools
 
         internal override List<string> GetTextRepresentation()
         {
-            this.DisplayedObjects = new List<Object>();
             var text = new List<string>();
+            this.DisplayedObjects = new List<Object>();
+
             if (this.GetHeight() == 0)
                 return text;
+
             var textHorizontalSpace = this.GetItemHorizontalSpace();
             var horizontalBorder = new string(this.BorderCharacter, this.GetWidth());
+            
             if ((this.BorderTop || this.BorderBottom) && this.GetHeight() == 1)
             {
                 text.Add(horizontalBorder);
                 return text;
             }
+
             var rowsAvailableForItems = this.GetNumberOfAvailableRowsForItems();
             var currentItemIndex = this.TopDisplayedObjectIndex;
 
@@ -2613,7 +2503,7 @@ namespace PSCLUITools
             
             for (var i = 0; i < rowsAvailableForItems; i++)
             {
-                if (currentItemIndex > Objects.Count - 1)
+                if (currentItemIndex > this.Objects.Count - 1)
                     currentItemIndex = 0;
 
                 var item = this.Objects[currentItemIndex];
@@ -2679,7 +2569,7 @@ namespace PSCLUITools
 
                 if (this.PaddingLeft)
                     label.AddPadding("left");
-
+                
                 foreach (string lblText in label.GetTextRepresentation())
                 {
                     text.Add(lblText);
