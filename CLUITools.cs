@@ -131,8 +131,6 @@ namespace PSCLUITools
 
         public void UpdateAll()
         {
-            // TODO Remove if no longer needed:
-            //foreach (Control control in this.container.controls)
             foreach (Control control in this.containers)
             {
                 this.Update(control);
@@ -292,71 +290,68 @@ namespace PSCLUITools
     {
         // TODO Change accessibility (public, protected, etc) to whatever it ought to be
         public Coordinates Position { get; set; } = new Coordinates(0, 0);
-        protected int width = 0;
-        protected int height = 0;
-        protected bool BorderTop { get; set; } = false;
-        protected bool BorderRight { get; set; } = false;
-        protected bool BorderBottom { get; set; } = false;
-        protected bool BorderLeft { get; set; } = false;
-        protected bool PaddingTop { get; set; } = false;
-        protected bool PaddingRight { get; set; } = false;
-        protected bool PaddingBottom { get; set; } = false;
-        protected bool PaddingLeft { get; set; } = false;
-        public char BorderCharacter { get; set; } = '#';
-        public BufferCell BorderCell { get; set; } = new BufferCell(' ', 0, 0, 0);
-        public char PaddingCharacterTop { get; set; } = ' ';
-        public char PaddingCharacterRight { get; set; } = ' ';
-        public char PaddingCharacterBottom { get; set; } = ' ';
-        public char PaddingCharacterLeft { get; set; } = ' ';
-        public BufferCell PaddingCellTop { get; set; } = new BufferCell(' ', 0, 0, 0);
-        public BufferCell PaddingCellRight { get; set; } = new BufferCell(' ', 0, 0, 0);
-        public BufferCell PaddingCellBottom { get; set; } = new BufferCell(' ', 0, 0, 0);
-        public BufferCell PaddingCellLeft { get; set; } = new BufferCell(' ', 0, 0, 0);
-        public char BackgroundCharacter { get; set; } = ' ';
-        public BufferCell BackgroundCell { get; set; } = new BufferCell(' ', 0, 0, 0);
-        public char SelectCharacter { get; set; } = '+';
-        public char ActiveCharacter { get; set; } = '>';
-        public char SelectedAndActiveCharacter { get; set; } = '*';
-        public ConsoleColor BackgroundColor { get; set; }
-        public ConsoleColor ForegroundColor { get; set; }
-        public ConsoleColor ActiveItemColor { get; set; }
-        public ConsoleColor SelectedItemColor { get; set; }
-        public ConsoleColor ActiveAndSelectedItemColor { get; set; }
-        public string AlignText { get; set; } = "Left";
+        internal int width = 0;
+        internal int height = 0;
+        internal bool BorderTop { get; set; } = false;
+        internal bool BorderRight { get; set; } = false;
+        internal bool BorderBottom { get; set; } = false;
+        internal bool BorderLeft { get; set; } = false;
+        internal bool PaddingTop { get; set; } = false;
+        internal bool PaddingRight { get; set; } = false;
+        internal bool PaddingBottom { get; set; } = false;
+        internal bool PaddingLeft { get; set; } = false;
+        internal char BorderCharacter { get; set; } = '#';
+        internal BufferCell BorderCell { get; set; } = new BufferCell(' ', 0, 0, 0);
+        internal char PaddingCharacterTop { get; set; } = ' ';
+        internal char PaddingCharacterRight { get; set; } = ' ';
+        internal char PaddingCharacterBottom { get; set; } = ' ';
+        internal char PaddingCharacterLeft { get; set; } = ' ';
+        internal BufferCell PaddingCellTop { get; set; } = new BufferCell(' ', 0, 0, 0);
+        internal BufferCell PaddingCellRight { get; set; } = new BufferCell(' ', 0, 0, 0);
+        internal BufferCell PaddingCellBottom { get; set; } = new BufferCell(' ', 0, 0, 0);
+        internal BufferCell PaddingCellLeft { get; set; } = new BufferCell(' ', 0, 0, 0);
+        internal char BackgroundCharacter { get; set; } = ' ';
+        internal BufferCell BackgroundCell { get; set; } = new BufferCell(' ', 0, 0, 0);
+        internal char SelectCharacter { get; set; } = '+';
+        internal char ActiveCharacter { get; set; } = '>';
+        internal char SelectedAndActiveCharacter { get; set; } = '*';
+        internal ConsoleColor BackgroundColor { get; set; }
+        internal ConsoleColor ForegroundColor { get; set; }
+        internal ConsoleColor ActiveItemColor { get; set; }
+        internal ConsoleColor SelectedItemColor { get; set; }
+        internal ConsoleColor ActiveAndSelectedItemColor { get; set; }
+        internal string AlignText { get; set; } = "Left";
 
         // Controls
-        public const string KeyUp0  = "UpArrow";
-        public const string KeyUp1  = "K";
-        public const string KeyRight0  = "RightArrow";
-        public const string KeyRight1  = "L";
-        public const string KeyDown0  = "DownArrow";
-        public const string KeyDown1  = "J";
-        public const string KeyPageUp  = "PageUp";
-        public const string KeyPageDown  = "PageDown";
-        public const string KeyLeft0  = "LeftArrow";
-        public const string KeyLeft1  = "H";
-        public const string KeyConfirm = "Enter";
-        public const string KeySelect = "Spacebar";
-        public const string KeyCancel = "Escape";
-        public const string KeyFind = "Oem2";
-        public const string KeyFindNext = "N";
-        public const string KeyFindPrevious = "P";
-        public const string KeyTest = "T";
+        internal const string KeyUp0  = "UpArrow";
+        internal const string KeyUp1  = "K";
+        internal const string KeyRight0  = "RightArrow";
+        internal const string KeyRight1  = "L";
+        internal const string KeyDown0  = "DownArrow";
+        internal const string KeyDown1  = "J";
+        internal const string KeyPageUp  = "PageUp";
+        internal const string KeyPageDown  = "PageDown";
+        internal const string KeyLeft0  = "LeftArrow";
+        internal const string KeyLeft1  = "H";
+        internal const string KeyConfirm = "Enter";
+        internal const string KeySelect = "Spacebar";
+        internal const string KeyCancel = "Escape";
+        internal const string KeyFind = "Oem2";
+        internal const string KeyFindNext = "N";
+        internal const string KeyFindPrevious = "P";
+        internal const string KeyTest = "T";
 
         // Returns a text representation of the control, including borders and whatever else stylings
-        public abstract List<string> GetTextRepresentation();
+        internal abstract List<string> GetTextRepresentation();
 
         // Returns a PSHost representation of the control
-        public abstract List<BufferCellElement> GetPSHostRawUIRepresentation();
+        internal abstract List<BufferCellElement> GetPSHostRawUIRepresentation();
 
         // A Container that contains this Control
         public Container Container { get; set; }
 
         public void UpdatePSHostVariables()
         {
-            // TODO Remove if no problems are detected:
-            //this.BackgroundColor = this.Buffer.PSHost.UI.RawUI.ForegroundColor;
-            //this.ForegroundColor = this.Buffer.PSHost.UI.RawUI.BackgroundColor;
             this.BackgroundColor = this.Container.Buffer.PSHost.UI.RawUI.ForegroundColor;
             this.ForegroundColor = this.Container.Buffer.PSHost.UI.RawUI.BackgroundColor;
             this.ActiveItemColor = ConsoleColor.Green;
@@ -510,13 +505,9 @@ namespace PSCLUITools
             else 
                 buffer = this.Container.Buffer;
             
-            // TODO Remove if no problems are run into:
-            //if (this.Buffer != null)
             if (buffer != null)
             {
                 int bottomEdgePosition = this.GetBottomEdgePosition();
-                // TODO Remove if the line under this one works:
-                //int bottomEdgePositionBuffer = this.Buffer.GetBottomEdgePosition();
                 int bottomEdgePositionBuffer = buffer.GetBottomEdgePosition();
                 if (bottomEdgePosition > bottomEdgePositionBuffer)
                     // NOTE For some reason the last line that can be written to doesn't actually 
@@ -1242,19 +1233,13 @@ namespace PSCLUITools
             var coordinates = new Coordinates(positionLeft, positionTop); // x, y
             var rectangle = new Rectangle(
                 positionLeft, positionTop, positionRight, positionBottom); // left, top, right, bottom
-            // TODO Remove if can be removed:
-            //var bufferContent = this.Buffer.PSHost.UI.RawUI.GetBufferContents(rectangle);
             var bufferContent = this.Container.Buffer.PSHost.UI.RawUI.GetBufferContents(rectangle);
             var size = new Size(width, height);
-            // TODO Remove if can be removed:
-            //var bufferContentNew = this.Buffer.PSHost.UI.RawUI.NewBufferCellArray(size, cell);
             var bufferContentNew = this.Container.Buffer.PSHost.UI.RawUI.NewBufferCellArray(size, cell);
             var bufferCellElement = new BufferCellElement(bufferContent, bufferContentNew, 
                                                             coordinates, control);
             if (element == "item")
             {
-                // TODO Remove if can be removed:
-                //bufferContentNew = this.Buffer.PSHost.UI.RawUI.NewBufferCellArray(
                 bufferContentNew = this.Container.Buffer.PSHost.UI.RawUI.NewBufferCellArray(
                     text.ToArray(), this.ForegroundColor, this.BackgroundColor);
                 bufferCellElement = new BufferCellElement(
@@ -1262,8 +1247,6 @@ namespace PSCLUITools
             }
             else if (element == "activeItem")
             {
-                // TODO Remove if possible:
-                //bufferContentNew = this.Buffer.PSHost.UI.RawUI.NewBufferCellArray(
                 bufferContentNew = this.Container.Buffer.PSHost.UI.RawUI.NewBufferCellArray(
                     text.ToArray(), this.ActiveItemColor, this.BackgroundColor);
                 bufferCellElement = new BufferCellElement(
@@ -1271,8 +1254,6 @@ namespace PSCLUITools
             }
             else if (element == "selectedItem")
             {
-                // TODO Remove if not required:
-                //bufferContentNew = this.Buffer.PSHost.UI.RawUI.NewBufferCellArray(
                 bufferContentNew = this.Container.Buffer.PSHost.UI.RawUI.NewBufferCellArray(
                     text.ToArray(), this.SelectedItemColor, this.BackgroundColor);
                 bufferCellElement = new BufferCellElement(
@@ -1280,8 +1261,6 @@ namespace PSCLUITools
             }
             else if (element == "activeAndSelectedItem")
             {
-                // TODO Remove if possible:
-                //bufferContentNew = this.Buffer.PSHost.UI.RawUI.NewBufferCellArray(
                 bufferContentNew = this.Container.Buffer.PSHost.UI.RawUI.NewBufferCellArray(
                     text.ToArray(), this.ActiveAndSelectedItemColor, this.BackgroundColor);
                 bufferCellElement = new BufferCellElement(
@@ -1291,7 +1270,7 @@ namespace PSCLUITools
             return bufferCellElement;
         }
 
-        protected List<BufferCellElement> GetPSHostRawUIBorderRepresentation()
+        internal List<BufferCellElement> GetPSHostRawUIBorderRepresentation()
         {
             var bufferCellElement = new List<BufferCellElement>();
             var bufferCellElementHorizontal = new List<BufferCellElement>();
@@ -1366,8 +1345,6 @@ namespace PSCLUITools
                                             ConsoleColor backgroundColor)
         {
             var textHorizontalSpace = this.GetItemHorizontalSpace();
-            // TODO Remove if possible:
-            //var bce = this.Buffer.GetBufferCellElement(findItem);
             var bce = this.Container.Buffer.GetBufferCellElement(findItem);
             if (bce != null)
             {
@@ -1381,8 +1358,6 @@ namespace PSCLUITools
                 }
                 outTxt = outTxt.PadRight(this.GetItemHorizontalSpace(), this.BackgroundCharacter);
                 text.Add(outTxt);
-                // TODO Remove if possible:
-                //bce.NewBufferCellArray = this.Buffer.PSHost.UI.RawUI.NewBufferCellArray(
                 bce.NewBufferCellArray = this.Container.Buffer.PSHost.UI.RawUI.NewBufferCellArray(
                     text.ToArray(), foregroundColor, backgroundColor);
                 bce.Changed = true;
@@ -1392,14 +1367,15 @@ namespace PSCLUITools
 
     class Container : Control
     {
-        public Buffer Buffer { get; set; }
-        public bool Vertical { get; set; } = false;
-        public bool SetContainerToWidestControlWidth { get; set; } = true;
-        public bool SetControlsToContainerWidth { get; set; } = true;
-        public bool AutoPositionControls { get; set; } = true;
-        public bool SetContainerToCombinedControlHeight { get; set; } = true;
+        internal Buffer Buffer { get; set; }
+        internal bool Vertical { get; set; } = false;
+        internal bool SetContainerToWidestControlWidth { get; set; } = true;
+        internal bool SetControlsToContainerWidth { get; set; } = true;
+        internal bool AutoPositionControls { get; set; } = true;
+        internal bool AutoPositionContainer { get; set; } = true;
+        internal bool SetContainerToCombinedControlHeight { get; set; } = true;
 
-        public List<Control> controls = new List<Control>();
+        internal List<Control> controls = new List<Control>();
 
         internal Container(Buffer buffer)
         {
@@ -1411,7 +1387,7 @@ namespace PSCLUITools
             this.SetHeight(this.Buffer.GetHeight());
         }
 
-        public Container(int left, int top, int width, int height)
+        internal Container(int left, int top, int width, int height)
         {
             this.SetHorizontalPosition(left);
             this.SetVerticalPosition(top);
@@ -1419,13 +1395,13 @@ namespace PSCLUITools
             this.SetHeight(height);
         }
 
-        public void SetControlsWidth(int width)
+        internal void SetControlsWidth(int width)
         {
             foreach (Control control in this.controls)
                 control.SetWidth(width);
         }
 
-        public int GetWidestControlWidth()
+        internal int GetWidestControlWidth()
         {
             int i = 0;
             foreach (Control control in this.controls)
@@ -1437,81 +1413,9 @@ namespace PSCLUITools
             return i;
         }
 
-        //public void AddControl(Control control)
-        //{
-            //// TODO Move most of this code to method of its own and call that in 
-            //// Get*Representation(). That way the final result will not be attempted 
-            //// to construct until after all Controls have been added and the same 
-            //// work will not have to be done in an increasing manner each and every 
-            //// time a control is added probably reducing unnecessary errors for when 
-            //// things are at in-between states.
-            //control.Container = this;
-            //control.Buffer = this.Buffer;
-
-            //if (this.SetContainerToCombinedControlHeight)
-                //this.SetHeight(Console.WindowHeight); // FIX Should not be referenced directly
-
-            //if (this.SetContainerToWidestControlWidth)
-            //{
-                //if (this.GetWidth() < control.GetWidth())
-                    //this.SetWidth(control.GetWidth());
-
-                //if (this.SetControlsToContainerWidth)
-                    //// Set existing member controls to the changed width
-                    //SetControlsWidth(this.GetWidth());
-            //}
-
-            //if (this.SetControlsToContainerWidth)
-            //{
-                //control.SetWidth(this.GetWidth());
-            //}
-
-            //if (controls.Count == 0 && this.AutoPositionControls)
-            //{
-                //// First control to be added, set position to this containers top left
-                //control.SetHorizontalPosition(this.Position.X);
-                //control.SetVerticalPosition(this.Position.Y);
-            //}
-            //else if (this.AutoPositionControls)
-            //{
-                //// Get the last controls coordinates and position the new one after it
-                //if (!Vertical)
-                //{
-                    //var lastControl = controls[controls.Count - 1];
-                    //var left = this.Position.X;
-                    //var top = lastControl.GetBottomEdgePosition() + 1;
-                    //control.SetHorizontalPosition(left);
-                    //control.SetVerticalPosition(top);
-                //}
-                //else
-                //{
-                    //throw new NotImplementedException();
-                //}
-            //}
-
-            //if (control.GetBottomEdgePosition() > this.GetBottomEdgePosition())
-                //control.SetBottomEdgePosition(this.GetBottomEdgePosition());
-
-            //// TODO control.Container becomes inaccessible unless I make it public, this is not good.
-            ////      There's an explanation over yonder:
-            ////      https://stackoverflow.com/questions/567705/why-cant-i-access-c-sharp-protected-members-except-like-this
-            //controls.Add(control);
-
-            //if (this.SetContainerToCombinedControlHeight)
-            //{
-                //var height = 0;
-                //foreach (Control ctrl in this.controls)
-                //{
-                    //height += ctrl.GetHeight();
-                //}
-                //this.SetHeight(height);
-            //}
-        //}
-
-        public void AddControl(Control control)
+        internal void AddControl(Control control)
         {
             control.Container = this;
-            //control.Buffer = this.Buffer;
             controls.Add(control);
         }
 
@@ -1519,14 +1423,9 @@ namespace PSCLUITools
         {
             // Updates Container and Control positions and dimensions
 
-            int i = 0;
-
-            foreach (Control control in this.controls)
+            void AutoPositionControl(Control control, int itemIndex)
             {
-                if (this.SetContainerToCombinedControlHeight)
-                    this.SetHeight(this.Buffer.GetHeight()); // FIX Should not be referenced directly
-
-                if (this.AutoPositionControls && i == 0)
+                if (this.AutoPositionControls && itemIndex == 0)
                 {
                     // First control to be added, set position to this containers top left
                     control.SetHorizontalPosition(this.Position.X);
@@ -1537,7 +1436,7 @@ namespace PSCLUITools
                     // Get the last controls coordinates and position the new one after it
                     if (!Vertical)
                     {
-                        var lastControl = controls[controls.Count - 1];
+                        var lastControl = controls[itemIndex - 1];
                         var left = this.Position.X;
                         var top = lastControl.GetBottomEdgePosition() + 1;
                         control.SetHorizontalPosition(left);
@@ -1546,6 +1445,16 @@ namespace PSCLUITools
                     else
                         throw new NotImplementedException();
                 }
+            }
+
+            if (this.SetContainerToCombinedControlHeight)
+                this.SetHeight(this.Buffer.GetHeight());
+
+            int index = 0;
+
+            foreach (Control control in this.controls)
+            {
+                AutoPositionControl(control, index);
 
                 if (this.SetContainerToWidestControlWidth)
                 {
@@ -1563,7 +1472,7 @@ namespace PSCLUITools
                 if (control.GetBottomEdgePosition() > this.GetBottomEdgePosition())
                     control.SetBottomEdgePosition(this.GetBottomEdgePosition());
 
-                i++;
+                index++;
             }
 
             if (this.SetContainerToCombinedControlHeight)
@@ -1575,15 +1484,29 @@ namespace PSCLUITools
 
                 this.SetHeight(height);
             }
+
+            if (this.AutoPositionContainer)
+            {
+                this.SetHorizontalPositionToMiddle();
+                this.SetVerticalPositionToMiddle();
+
+                index = 0;
+
+                foreach (Control control in this.controls)
+                {
+                    AutoPositionControl(control, index);
+                    index++;
+                }
+            }
         }
 
-        public void RemoveControl(Control control)
+        internal void RemoveControl(Control control)
         {
             if (this.controls.Contains(control))
                 this.controls.Remove(control);
         }
 
-        public new void SetWidth(int width)
+        internal new void SetWidth(int width)
         {
             if (width < 0)
                 width = 0;
@@ -1595,11 +1518,14 @@ namespace PSCLUITools
                 SetControlsWidth(this.GetWidth());
         }
 
-        public new void SetHorizontalPosition(int x)
+        internal new void SetHorizontalPosition(int x)
         {
             // Move this Container
             base.SetHorizontalPosition(x);
 
+            // TODO Remove all of the below, shouldn't be doing anything anymore, then 
+            // remove this whole method:
+
             // Apply changes in Container position and size to controls by 
             // removing and adding them back in
             List<Control> temporaryStore = new List<Control>();
@@ -1613,11 +1539,14 @@ namespace PSCLUITools
                 this.AddControl(control);
         }
 
-        public new void SetVerticalPosition(int y)
+        internal new void SetVerticalPosition(int y)
         {
             // Move this Container
             base.SetVerticalPosition(y);
 
+            // TODO Remove all of the below, shouldn't be doing anything anymore, then 
+            // remove this whole method:
+
             // Apply changes in Container position and size to controls by 
             // removing and adding them back in
             List<Control> temporaryStore = new List<Control>();
@@ -1631,7 +1560,19 @@ namespace PSCLUITools
                 this.AddControl(control);
         }
 
-        public override List<string> GetTextRepresentation()
+        public void SetHorizontalPositionToMiddle()
+        {
+            var x = this.Buffer.GetWidth() / 2 - this.GetWidth() / 2;
+            this.SetHorizontalPosition(x);
+        }
+
+        public void SetVerticalPositionToMiddle()
+        {
+            var y = this.Buffer.GetHeight() / 2 - this.GetHeight() / 2;
+            this.SetVerticalPosition(y);
+        }
+
+        internal override List<string> GetTextRepresentation()
         {
             var text = new List<string>();
 
@@ -1646,7 +1587,7 @@ namespace PSCLUITools
             return text;
         }
 
-        public override List<BufferCellElement> GetPSHostRawUIRepresentation()
+        internal override List<BufferCellElement> GetPSHostRawUIRepresentation()
         {
             throw new NotImplementedException();
         }
@@ -1682,8 +1623,10 @@ namespace PSCLUITools
             this.Text = text;
         }
         
-        public override List<string> GetTextRepresentation()
+        internal override List<string> GetTextRepresentation()
         {
+            this.Container.UpdateStructure();
+
             var outText = new List<string>();
             var text = this.Text;
             var horizontalBorder = new string(this.BorderCharacter, this.GetWidth());
@@ -1831,12 +1774,12 @@ namespace PSCLUITools
             return outText;
         }
         
-        public override List<BufferCellElement> GetPSHostRawUIRepresentation()
+        internal override List<BufferCellElement> GetPSHostRawUIRepresentation()
         {
             var bufferCellElement = new List<BufferCellElement>();
 
             UpdatePSHostVariables();
-
+            
             var textHorizontalSpace = this.GetItemHorizontalSpace();
             List<string> content = new List<string>();
             List<string> text = this.Text;
@@ -2038,7 +1981,7 @@ namespace PSCLUITools
             return this.Text;
         }
 
-        public override List<string> GetTextRepresentation()
+        internal override List<string> GetTextRepresentation()
         {
             var text = new List<string>();
             var txt = this.Text;
@@ -2173,7 +2116,7 @@ namespace PSCLUITools
             return text;
         }
         
-        public override List<BufferCellElement> GetPSHostRawUIRepresentation()
+        internal override List<BufferCellElement> GetPSHostRawUIRepresentation()
         {
             UpdatePSHostVariables();
 
@@ -2235,6 +2178,7 @@ namespace PSCLUITools
             this.Container.AddControl(this);
             this.SetHorizontalPosition(left);
             this.SetVerticalPosition(top);
+
             for (var i = 0; i < objects.Count; i++)
             {
                 var objLength = objects[i].ToString().Length;
@@ -2243,6 +2187,7 @@ namespace PSCLUITools
                     this.width = objLength;
                 }
             }
+
             this.height = objects.Count;
             this.Objects = objects;
             this.SetItemActive(0);
@@ -2515,8 +2460,6 @@ namespace PSCLUITools
             else
                 newForegroundColor = this.ForegroundColor;
 
-            // TODO Remove if possible:
-            //if (this.Buffer != null && this.Buffer.PSHost != null)
             if (this.Container.Buffer != null && this.Container.Buffer.PSHost != null)
                 this.SetObjectBufferCellElement(this.ActiveObject, newForegroundColor, this.BackgroundColor);
 
@@ -2527,8 +2470,6 @@ namespace PSCLUITools
             else
                 newForegroundColor = this.ActiveItemColor;
 
-            // TODO Remove if possible:
-            //if (this.Buffer != null && this.Buffer.PSHost != null)
             if (this.Container.Buffer != null && this.Container.Buffer.PSHost != null)
                 this.SetObjectBufferCellElement(this.ActiveObject, newForegroundColor, this.BackgroundColor);
         }
@@ -2545,8 +2486,6 @@ namespace PSCLUITools
             else
                 newForegroundColor = this.SelectedItemColor;
 
-            // TODO Remove if possible:
-            //if (this.Buffer != null && this.Buffer.PSHost != null)
             if (this.Container.Buffer != null && this.Container.Buffer.PSHost != null)
                 this.SetObjectBufferCellElement(this.ActiveObject, newForegroundColor, this.BackgroundColor);
         }
@@ -2563,8 +2502,6 @@ namespace PSCLUITools
             else
                 newForegroundColor = this.ForegroundColor;
 
-            // TODO Remove if possible:
-            //if (this.Buffer != null && this.Buffer.PSHost != null)
             if (this.Container.Buffer != null && this.Container.Buffer.PSHost != null)
                 this.SetObjectBufferCellElement(this.ActiveObject, newForegroundColor, this.BackgroundColor);
         }
@@ -2574,8 +2511,6 @@ namespace PSCLUITools
             this.TopDisplayedObjectIndex = this.BottomDisplayedObjectIndex + 1;
             if (this.TopDisplayedObjectIndex == this.Objects.Count)
                 this.TopDisplayedObjectIndex = 0;
-            // TODO Remove if possible:
-            //this.Buffer.Clear();
             this.Container.Buffer.Clear();
             if (this.Mode != "List")
                 this.ActiveObject = this.Objects[this.TopDisplayedObjectIndex];
@@ -2604,9 +2539,7 @@ namespace PSCLUITools
 
             this.BottomDisplayedObjectIndex = newBottomDisplayedObjectIndex;
 
-            // TODO Remove if possible:
-            //this.Buffer.Clear(); // TODO Not sure this ought to be here...
-            this.Container.Buffer.Clear(); // TODO Not sure this ought to be here...
+            this.Container.Buffer.Clear();
             if (this.Mode != "List")
                 this.ActiveObject = this.Objects[this.BottomDisplayedObjectIndex];
         }
@@ -2634,12 +2567,10 @@ namespace PSCLUITools
 
             this.BottomDisplayedObjectIndex = newBottomDisplayedObjectIndex;
 
-            // TODO Remove if possible:
-            //this.Buffer.Clear(); // TODO Not sure this ought to be here...
-            this.Container.Buffer.Clear(); // TODO Not sure this ought to be here...
+            this.Container.Buffer.Clear();
         }
 
-        public override List<string> GetTextRepresentation()
+        internal override List<string> GetTextRepresentation()
         {
             this.DisplayedObjects = new List<Object>();
             var text = new List<string>();
@@ -2766,13 +2697,13 @@ namespace PSCLUITools
             return text;
         }
 
-        public override List<BufferCellElement> GetPSHostRawUIRepresentation()
+        internal override List<BufferCellElement> GetPSHostRawUIRepresentation()
         {
+            var bufferCellElement = new List<BufferCellElement>();
             UpdatePSHostVariables();
             this.DisplayedObjects = new List<Object>();
             var textHorizontalSpace = this.GetItemHorizontalSpace();
 
-            var bufferCellElement = new List<BufferCellElement>();
             foreach (BufferCellElement bce in this.GetPSHostRawUIBorderRepresentation())
                 bufferCellElement.Add(bce);
 

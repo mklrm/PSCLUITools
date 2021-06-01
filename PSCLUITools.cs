@@ -200,39 +200,25 @@ namespace PSCLUITools
                     label.AddPadding("right");
                     if (AlignTitle != null)
                         label.AlignText = AlignTitle;
-                    //container.AddControl(label);
                 }
 
-                //var menu = new Menu(container, 0, 0, InputObject);
-                //menu.Mode = Mode;
-                //menu.AddBorder("all");
-                //menu.AddPadding("all");
-                //if (AlignText != null)
-                    //menu.AlignText = AlignText;
-
-                //container.AddControl(menu);
-
-                container.UpdateStructure(); // TODO Maybe add methods like Container.UpdateWidth() that gets 
-                                             // called from GetWidth() and only updates the Width of a container 
-                                             // and Controls attached to it. Simplify SetWidth() and SetHeight() 
-                                             // as much as possible, let the Container handle Control size.
-                                             // Perhaps even take all logic out of resizing and moving around 
-                                             // from Controls and just let the Container handle it.
+                var menu = new Menu(container, 0, 0, InputObject);
+                menu.Mode = Mode;
+                menu.AddBorder("all");
+                menu.AddPadding("all");
+                if (AlignText != null)
+                    menu.AlignText = AlignText;
 
                 if (LeftPosition > -1)
-                    container.SetHorizontalPosition(LeftPosition);
-                else
                 {
-                    var x = Console.WindowWidth / 2 - container.GetWidth() / 2;
-                    container.SetHorizontalPosition(x);
+                    container.AutoPositionContainer = false;
+                    container.SetHorizontalPosition(LeftPosition);
                 }
 
                 if (TopPosition > -1)
-                    container.SetVerticalPosition(TopPosition);
-                else
                 {
-                    var y = Console.WindowHeight / 2 - container.GetHeight() / 2;
-                    container.SetVerticalPosition(y);
+                    container.AutoPositionContainer = false;
+                    container.SetVerticalPosition(TopPosition);
                 }
                 
                 buffer.UpdateAll();
