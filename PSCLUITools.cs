@@ -133,13 +133,14 @@ namespace PSCLUITools
 
         protected override void EndProcessing()
         {
+            // TODO Add Buffer.Close() that calls each Container.Close()
             if (PipelineInputList.Count > 1)
                 InputObject = PipelineInputList;
 
             List<Object> NewMenu()
             {
-                var buffer = new Buffer();
-                //var buffer = new Buffer(Host);
+                //var buffer = new Buffer();
+                var buffer = new Buffer(Host);
                 var container = new Container(buffer);
 
                 if (Title.Count > 0)
@@ -172,10 +173,11 @@ namespace PSCLUITools
                     container.SetVerticalPosition(TopPosition);
                 }
                 
-                buffer.UpdateAll(); // TODO Just call UpdateAll from Write
                 buffer.Write();
                 
-                return menu.ReadKey();
+                List<Object> objects = menu.ReadKey();
+                container.RemoveAllControls();
+                return objects;
             }
 
             List<Object> result = NewMenu();           
@@ -199,7 +201,9 @@ namespace PSCLUITools
                     WriteObject(output);
             }
             else if (result != null)
+            {
                 WriteObject(result);
+            }
         }
     }
 }

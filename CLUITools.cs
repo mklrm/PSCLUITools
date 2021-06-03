@@ -20,18 +20,23 @@ namespace PSCLUITools
 
         internal List<Container> containers = new List<Container>();
         internal List<BufferCellElement> bufferCellElements = new List<BufferCellElement>();
+        // List of Controls already added to the buffer. Prevents them from being added multiple times.
         protected List<Control> BufferedControls = new List<Control>();
+
+        internal string Type { get; set; }
 
         public Buffer()
         {
             this.position = new Coordinates(this.left, this.top);
             this.screenBufferArray = new char[this.width, this.height];
+            this.Type = "Console";
         }
 
         public Buffer(PSHost host)
         {
             this.PSHost = host;
             this.position = new Coordinates(this.left, this.top);
+            this.Type = "PSHost";
         }
 
         internal int GetWidth()
@@ -142,8 +147,29 @@ namespace PSCLUITools
                 this.Update(control);
         }
 
+        internal void AddContainer(Container container)
+        {
+            container.Buffer = this;
+            this.containers.Add(container);
+        }
+
+        internal void RemoveControl(Control control)
+        {
+            if (this.PSHost != null)
+            {
+                foreach (BufferCellElement bce in this.bufferCellElements)
+                {
+                    if (bce.Control == control)
+                        this.PSHost.UI.RawUI.SetBufferContents(bce.Coordinates, bce.CapturedBufferCellArray);
+                }
+
+                this.BufferedControls.Remove(control);
+            }
+        }
+
         public void Write()
         {
+            this.UpdateAll();
             if (this.PSHost == null)
             {
                 var screenBuffer = "";
@@ -191,47 +217,6 @@ namespace PSCLUITools
                 this.BufferedControls = new List<Control>();
                 this.bufferCellElements = new List<BufferCellElement>();
             }
-        }
-
-        //public void Add(Control control)
-        //{
-            //control.Buffer = this;
-            //this.container.controls.Add(control);
-        //}
-
-        public void Add(Container container)
-        {
-            container.Buffer = this;
-            //this.container.controls.Add(container);
-            this.containers.Add(container);
-        }
-
-        // TODO Modify to handle Containers instead
-        //public void Remove(Control control)
-        //{
-            //if (this.PSHost != null)
-            //{
-                //foreach (BufferCellElement bce in this.bufferCellElements)
-                //{
-                    //if (bce.Control == control)
-                        //this.PSHost.UI.RawUI.SetBufferContents(bce.Coordinates, bce.CapturedBufferCellArray);
-                //}
-            //}
-            //control.Buffer = this;
-            //this.container.controls.Remove(control);
-        //}
-
-        public void RemoveFromBuffer(Control control)
-        {
-            // TODO Restore buffer
-            for (int i = 0; i < this.bufferCellElements.Count; i++)
-            {
-                BufferCellElement bce = this.bufferCellElements[i];
-                if (bce.Control == control)
-                    bufferCellElements.Remove(bce);
-            }
-
-            this.BufferedControls.Remove(control);
         }
 
         public BufferCellElement GetBufferCellElement(Object searchObject)
@@ -725,76 +710,21 @@ namespace PSCLUITools
                 this.SetHeight(y - this.GetTopEdgePosition());
         }
 
-        // Get top border positions
-        public int GetTopBorderPositionTop()
+        internal Coordinates GetTopBorderCoordinates()
         {
-            return this.GetTopEdgePosition();
-        }
-
-        public int GetTopBorderPositionBottom()
-        {
-            return this.GetTopBorderPositionTop();
-        }
-
-        public int GetTopBorderPositionLeft()
-        {
-            return this.GetLeftEdgePosition();
-        }
-
-        public int GetTopBorderPositionRight()
-        {
-            return this.GetRightEdgePosition();
+            int left = this.GetLeftEdgePosition();
+            int top = this.GetTopEdgePosition();
+            return new Coordinates(left, top);
         }
         
-        // Get bottom border positions
-        public int GetBottomBorderPositionTop()
+        internal Coordinates GetBottomBorderCoordinates()
         {
-            return this.GetBottomEdgePosition();
+            int left = this.GetLeftEdgePosition();
+            int top = this.GetBottomEdgePosition();
+            return new Coordinates(left, top);
         }
 
-        public int GetBottomBorderPositionBottom()
-        {
-            return this.GetBottomBorderPositionTop();
-        }
-
-        public int GetBottomBorderPositionLeft()
-        {
-            return this.GetLeftEdgePosition();
-        }
-
-        public int GetBottomBorderPositionRight()
-        {
-            return this.GetRightEdgePosition();
-        }
-        
-        // Get left border positions
-        public int GetLeftBorderPositionTop()
-        {
-            var position = this.GetTopEdgePosition();
-            if (this.BorderTop)
-                position++;
-            return position;
-        }
-
-        public int GetLeftBorderPositionBottom()
-        {
-            var position = this.GetBottomEdgePosition();
-            if (this.BorderBottom)
-                position--;
-            return position;
-        }
-
-        public int GetLeftBorderPositionLeft()
-        {
-            return this.GetLeftEdgePosition();
-        }
-
-        public int GetLeftBorderPositionRight()
-        {
-            return this.GetLeftBorderPositionLeft();
-        }
-
-        public int GetLeftBorderHeight()
+        internal int GetBorderHeight()
         {
             var height = this.GetHeight();
             if (this.BorderTop)
@@ -803,75 +733,26 @@ namespace PSCLUITools
                 height--;
             return height;
         }
-
-        // Get right border positions
-        public int GetRightBorderPositionTop()
+        
+        internal Coordinates GetLeftBorderCoordinates()
         {
-            var position = this.GetTopEdgePosition();
+            int left = this.GetLeftEdgePosition();
+            var top = this.GetTopEdgePosition();
             if (this.BorderTop)
-                position++;
-            return position;
+                top++;
+            return new Coordinates(left, top);
         }
 
-        public int GetRightBorderPositionBottom()
+        internal Coordinates GetRightBorderCoordinates()
         {
-            var position = this.GetBottomEdgePosition();
-            if (this.BorderBottom)
-                position--;
-            return position;
-        }
-
-        public int GetRightBorderPositionLeft()
-        {
-            return this.GetRightEdgePosition();
-        }
-
-        public int GetRightBorderPositionRight()
-        {
-            return this.GetRightBorderPositionLeft();
-        }
-
-        public int GetRightBorderHeight()
-        {
-            var height = this.GetHeight();
+            int left = this.GetRightEdgePosition();
+            var top = this.GetTopEdgePosition();
             if (this.BorderTop)
-                height--;
-            if (this.BorderBottom)
-                height--;
-            return height;
+                top++;
+            return new Coordinates(left, top);
         }
 
-        // Get top padding positions
-        public int GetTopPaddingPositionTop()
-        {
-            var position = this.GetTopEdgePosition();
-            if (this.BorderTop)
-                position++;
-            return position;
-        }
-
-        public int GetTopPaddingPositionBottom()
-        {
-            return this.GetTopPaddingPositionTop();
-        }
-
-        public int GetTopPaddingPositionLeft()
-        {
-            var position = this.GetLeftEdgePosition();
-            if (this.BorderLeft)
-                position++;
-            return position;
-        }
-
-        public int GetTopPaddingPositionRight()
-        {
-            var position = this.GetRightEdgePosition();
-            if (this.BorderRight)
-                position--;
-            return position;
-        }
-
-        public int GetTopPaddingWidth()
+        internal int GetPaddingWidth()
         {
             var width = this.GetWidth();
             if (this.BorderLeft)
@@ -880,82 +761,32 @@ namespace PSCLUITools
                 width--;
             return width;
         }
-        
-        // Get bottom padding positions
-        public int GetBottomPaddingPositionTop()
-        {
-            var position = this.GetBottomEdgePosition();
-            if (this.BorderBottom)
-                position--;
-            return position;
-        }
 
-        public int GetBottomPaddingPositionBottom()
+        internal Coordinates GetTopPaddingCoordinates()
         {
-            return this.GetBottomPaddingPositionTop();
-        }
-
-        public int GetBottomPaddingPositionLeft()
-        {
-            var position = this.GetLeftEdgePosition();
+            var left = this.GetLeftEdgePosition();
             if (this.BorderLeft)
-                position++;
-            return position;
-        }
-
-        public int GetBottomPaddingPositionRight()
-        {
-            var position = this.GetRightEdgePosition();
-            if (this.BorderRight)
-                position--;
-            return position;
-        }
-        
-        public int GetBottomPaddingWidth()
-        {
-            var width = this.GetWidth();
-            if (this.BorderLeft)
-                width--;
-            if (this.BorderRight)
-                width--;
-            return width;
-        }
-        
-        // Get left padding positions
-        public int GetLeftPaddingPositionTop()
-        {
-            var position = this.GetTopEdgePosition();
-            if (this.PaddingTop)
-                position++;
+                left++;
+            var top = this.GetTopEdgePosition();
             if (this.BorderTop)
-                position++;
-            return position;
-        }
-
-        public int GetLeftPaddingPositionBottom()
+                top++;
+            return new Coordinates(left, top);
+        } 
+        
+        internal Coordinates GetBottomPaddingCoordinates()
         {
-            var position = this.GetBottomEdgePosition();
-            if (this.PaddingBottom)
-                position--;
-            if (this.BorderBottom)
-                position--;
-            return position;
-        }
-
-        public int GetLeftPaddingPositionLeft()
-        {
-            var position = this.GetLeftEdgePosition();
+            var left = this.GetLeftEdgePosition();
             if (this.BorderLeft)
-                position++;
-            return position;
-        }
+                left++;
 
-        public int GetLeftPaddingPositionRight()
-        {
-            return this.GetLeftPaddingPositionLeft();
-        }
+            var top = this.GetBottomEdgePosition();
+            if (this.BorderBottom)
+                top--;
 
-        public int GetLeftPaddingHeight()
+            return new Coordinates(left, top);
+        }
+        
+        internal int GetPaddingHeight()
         {
             var height = this.GetHeight();
             if (this.BorderTop)
@@ -969,55 +800,36 @@ namespace PSCLUITools
             return height;
         }
 
-        // Get right padding positions
-        public int GetRightPaddingPositionTop()
+        internal Coordinates GetLeftPaddingCoordinates()
         {
-            var position = this.GetTopEdgePosition();
+            var left = this.GetLeftEdgePosition();
+            if (this.BorderLeft)
+                left++;
+
+            var top = this.GetTopEdgePosition();
             if (this.PaddingTop)
-                position++;
+                top++;
             if (this.BorderTop)
-                position++;
-            return position;
+                top++;
+
+            return new Coordinates(left, top);
         }
 
-        public int GetRightPaddingPositionBottom()
+        internal Coordinates GetRightPaddingCoordinates()
         {
-            var position = this.GetBottomEdgePosition();
-            if (this.PaddingBottom)
-                position--;
-            if (this.BorderBottom)
-                position--;
-            return position;
-        }
-
-        public int GetRightPaddingPositionLeft()
-        {
-            var position = this.GetRightEdgePosition();
+            var left = this.GetRightEdgePosition();
             if (this.BorderRight)
-                position--;
-            return position;
-        }
+                left--;
+            var top = this.GetTopEdgePosition();
 
-        public int GetRightPaddingPositionRight()
-        {
-            return this.GetRightPaddingPositionLeft();
-        }
-
-        public int GetRightPaddingHeight()
-        {
-            var height = this.GetHeight();
-            if (this.BorderTop)
-                height--;
-            if (this.BorderBottom)
-                height--;
             if (this.PaddingTop)
-                height--;
-            if (this.PaddingBottom)
-                height--;
-            return height;
+                top++;
+            if (this.BorderTop)
+                top++;
+
+            return new Coordinates(left, top);
         }
 
-        // Get item positions
         public int GetItemPositionTop(int itemNumber = 0)
         {
             var position = this.GetTopEdgePosition();
@@ -1094,6 +906,8 @@ namespace PSCLUITools
                                                         int itemNumber = 0, Control control = null, 
                                                         Object obj = null)
         {
+            // TODO Maybe the position variables should be named to make it clearer that they're supposed 
+            // to be used to form a rectangle that'll be used to capture the buffer before rewriting it.
             var positionTop = 0; 
             var positionBottom = 0;
             var positionLeft = 0;
@@ -1104,80 +918,102 @@ namespace PSCLUITools
 
             if (element == "borderTop")
             {
-                positionTop = this.GetTopBorderPositionTop();
-                positionBottom = this.GetTopBorderPositionBottom();
-                positionLeft = this.GetTopBorderPositionLeft();
-                positionRight = this.GetTopBorderPositionRight();
                 width = this.GetWidth();
+                Coordinates coords = this.GetTopBorderCoordinates();
+                positionTop = coords.Y;
+                positionBottom = positionTop + 1;
+                positionLeft = coords.X;
+                positionRight = positionLeft + width;
                 cell = this.BorderCell;
             }
             else if (element == "borderBottom")
             {
-                positionTop = this.GetBottomBorderPositionTop();
-                positionBottom = this.GetBottomBorderPositionBottom();
-                positionLeft = this.GetBottomBorderPositionLeft();
-                positionRight = this.GetBottomBorderPositionRight();
                 width = this.GetWidth();
+                Coordinates coords = this.GetBottomBorderCoordinates();
+                positionTop = coords.Y;
+                positionBottom = positionTop + 1;
+                positionLeft = coords.X;
+                positionRight = positionLeft + width;
                 cell = this.BorderCell;
             }
             else if (element == "borderLeft")
             {
-                positionTop = this.GetLeftBorderPositionTop();
-                positionBottom = this.GetLeftBorderPositionBottom();
-                positionLeft = this.GetLeftBorderPositionLeft();
-                positionRight = this.GetLeftBorderPositionRight();
-                height = this.GetLeftBorderHeight();
+                height = this.GetBorderHeight();
+                Coordinates coords = this.GetLeftBorderCoordinates();
+                positionTop = coords.Y;
+                positionBottom = positionTop + height;
+                if (this.BorderBottom)
+                    positionBottom--;
+                positionLeft = coords.X;
+                positionRight = positionLeft + 1;
                 cell = this.BorderCell;
             }
             else if (element == "borderRight")
             {
-                positionTop = this.GetRightBorderPositionTop();
-                positionBottom = this.GetRightBorderPositionBottom();
-                positionLeft = this.GetRightBorderPositionLeft();
-                positionRight = this.GetRightBorderPositionRight();
-                height = this.GetRightBorderHeight();
+                height = this.GetBorderHeight();
+                Coordinates coords = this.GetRightBorderCoordinates();
+                positionTop = coords.Y;
+                positionBottom = positionTop + height;
+                positionLeft = coords.X;
+                positionRight = positionLeft + 1;
                 cell = this.BorderCell;
             }
             else if (element == "paddingTop")
             {
-                positionTop = this.GetTopPaddingPositionTop();
-                positionBottom = this.GetTopPaddingPositionBottom();
-                positionLeft = this.GetTopPaddingPositionLeft();
-                positionRight = this.GetTopPaddingPositionRight();
-                width = this.GetTopPaddingWidth();
+                width = this.GetPaddingWidth();
+                Coordinates coords = this.GetTopPaddingCoordinates();
+                positionTop = coords.Y;
+                positionBottom = positionTop + 1;
+                positionLeft = coords.X;
+                positionRight = positionLeft + width;
+                if (this.BorderRight)
+                    positionRight--;
                 cell = this.PaddingCellTop;
             }
             else if (element == "paddingBottom")
             {
-                positionTop = this.GetBottomPaddingPositionTop();
-                positionBottom = this.GetBottomPaddingPositionBottom();
-                positionLeft = this.GetBottomPaddingPositionLeft();
-                positionRight = this.GetBottomPaddingPositionRight();
-                width = this.GetTopPaddingWidth();
+                width = this.GetPaddingWidth();
+                Coordinates coords = this.GetBottomPaddingCoordinates();
+                positionTop = coords.Y;
+                positionBottom = positionTop + 1;
+                positionLeft = coords.X;
+                positionRight = positionLeft + width;
+                if (this.BorderRight)
+                    positionRight--;
                 cell = this.PaddingCellBottom;
             }
             else if (element == "paddingLeft")
             {
-                positionTop = this.GetLeftPaddingPositionTop();
-                positionBottom = this.GetLeftPaddingPositionBottom();
-                positionLeft = this.GetLeftPaddingPositionLeft();
-                positionRight = this.GetLeftPaddingPositionRight();
-                height = this.GetLeftPaddingHeight();
+                height = this.GetPaddingHeight();
+                Coordinates coords = this.GetLeftPaddingCoordinates();
+                positionTop = coords.Y;
+                positionBottom = positionTop + height + 1; // TODO The + 1 doesn't seem to make sense but was required
+                if (this.PaddingBottom)
+                    positionBottom--;
+                if (this.BorderBottom)
+                    positionBottom--;
+                positionLeft = coords.X;
+                positionRight = positionLeft + 1;
                 cell = this.PaddingCellLeft;
             }
             else if (element == "paddingRight")
             {
-                positionTop = this.GetRightPaddingPositionTop();
-                positionBottom = this.GetRightPaddingPositionBottom();
-                positionLeft = this.GetRightPaddingPositionLeft();
-                positionRight = this.GetRightPaddingPositionRight();
-                height = this.GetRightPaddingHeight();
+                height = this.GetPaddingHeight();
+                Coordinates coords = this.GetRightPaddingCoordinates();
+                positionTop = coords.Y;
+                positionBottom = positionTop + height + 1; // TODO The + 1 doesn't seem to make sense but was required
+                if (this.PaddingBottom)
+                    positionBottom--;
+                if (this.BorderBottom)
+                    positionBottom--;
+                positionLeft = coords.X;
+                positionRight = positionLeft + 1;
                 cell = this.PaddingCellRight;
             }
             else if (element.ToLower().Contains("item"))
             {
                 positionTop = this.GetItemPositionTop(itemNumber);
-                positionBottom = this.GetItemPositionBottom(itemNumber);
+                positionBottom = this.GetItemPositionBottom(itemNumber) + 1;
                 positionLeft = this.GetItemPositionLeft();
                 positionRight = this.GetItemPositionRight();
                 width = this.GetItemWidth();
@@ -1334,7 +1170,7 @@ namespace PSCLUITools
         internal Container(Buffer buffer)
         {
             this.Buffer = buffer;
-            this.Buffer.Add(this);
+            this.Buffer.AddContainer(this);
             this.SetHorizontalPosition(this.Buffer.GetLeftEdgePosition());
             this.SetVerticalPosition(this.Buffer.GetTopEdgePosition());
             this.SetWidth(this.Buffer.GetWidth());
@@ -1411,7 +1247,6 @@ namespace PSCLUITools
 
             foreach (Control control in this.controls)
             {
-
                 if (this.SetContainerToWidestControlWidth)
                 {
                     if (this.GetWidth() < control.GetWidth())
@@ -1460,7 +1295,22 @@ namespace PSCLUITools
         internal void RemoveControl(Control control)
         {
             if (this.controls.Contains(control))
+            {
+                this.Buffer.RemoveControl(control);
                 this.controls.Remove(control);
+            }
+        }
+
+        internal void RemoveAllControls()
+        {
+            while (this.controls.Count > 0)
+                this.RemoveControl(this.controls[0]);
+        }
+
+        internal void Close()
+        {
+            this.RemoveAllControls();
+            this.Buffer = null;
         }
 
         public void SetHorizontalPositionToMiddle()
@@ -1728,7 +1578,7 @@ namespace PSCLUITools
                 return rows;
             }
             
-            bufferCellElement.Add(NewBufferCellElement("item", content));
+            bufferCellElement.Add(NewBufferCellElement("item", content, control: this));
 
             if (GetNumberOfAvailableContentRows() > content.Count)
             {
@@ -1737,7 +1587,7 @@ namespace PSCLUITools
                 for (int i = 1; i < GetNumberOfAvailableContentRows(); i++)
                     content.Add(spaces);
 
-                bufferCellElement.Add(NewBufferCellElement("item", content));
+                bufferCellElement.Add(NewBufferCellElement("item", content, control: this));
             }
 
             return bufferCellElement;
@@ -1768,61 +1618,15 @@ namespace PSCLUITools
             this.Text = " ";
         }
 
-        public new void SetHorizontalPosition(int x)
+        public TextBox(Container container, int left, int top, int width) : base()
         {
-            if (this.Container != null)
-            {
-                if (x + this.GetWidth() > this.Container.GetRightEdgePosition())
-                {
-                    this.Position = new Coordinates(x, this.Position.Y);
-                    this.SetRightEdgePosition(this.Container.GetRightEdgePosition());
-                    return;
-                }
-
-                if (x < this.Container.GetLeftEdgePosition())
-                {
-                    this.SetLeftEdgePosition(this.Container.GetLeftEdgePosition());
-                    // Remove the number of characters passing left side of the Container
-                    width = this.GetWidth();
-                    width = width - (this.Container.GetLeftEdgePosition() - x);
-                    this.SetWidth(width);
-                    return;
-                }
-            }
-            
-            this.CursorPositionLeft = x;
-
-            if (this.BorderLeft)
-                this.CursorPositionLeft += 1;
-            if (this.PaddingLeft)
-                this.CursorPositionLeft += 1;
-
-            this.Position = new Coordinates(x, this.Position.Y);
-        }
-
-        public new void SetVerticalPosition(int y)
-        {
-            if (this.Container != null)
-            {
-                if (y + this.GetHeight() > this.Container.GetBottomEdgePosition())
-                {
-                    this.Position = new Coordinates(this.Position.X, y);
-                    this.SetBottomEdgePosition(this.Container.GetBottomEdgePosition());
-                    return;
-                }
-
-                if (y < this.Container.GetTopEdgePosition())
-                {
-                    this.SetTopEdgePosition(this.Container.GetTopEdgePosition());
-                    // Remove the number of characters passing top side of the Container
-                    height = this.GetHeight();
-                    height = height - (this.Container.GetTopEdgePosition() - y);
-                    this.SetHeight(height);
-                    return;
-                }
-            }
-
-            this.Position = new Coordinates(this.Position.X, y);
+            this.Container = container;
+            this.Container.AddControl(this);
+            this.SetHorizontalPosition(left);
+            this.SetVerticalPosition(top);
+            this.SetWidth(width);
+            this.SetHeight(1);
+            this.Text = " ";
         }
 
         public int GetLastLegalCursorPosition()
@@ -2019,6 +1823,8 @@ namespace PSCLUITools
         
         internal override List<BufferCellElement> GetPSHostRawUIRepresentation()
         {
+            var bufferCellElement = new List<BufferCellElement>();
+
             UpdatePSHostVariables();
 
             var textHorizontalSpace = this.GetItemHorizontalSpace();
@@ -2029,7 +1835,6 @@ namespace PSCLUITools
             txt = txt.PadRight(textHorizontalSpace, this.BackgroundCharacter);
             content.Add(txt);
 
-            var bufferCellElement = new List<BufferCellElement>();
             foreach (BufferCellElement bce in this.GetPSHostRawUIBorderRepresentation())
                 bufferCellElement.Add(bce);
             var numberOfUsedContentRows = 0;
@@ -2050,13 +1855,13 @@ namespace PSCLUITools
             }
             
             if (GetNumberOfAvailableContentRows() == 1)
-                bufferCellElement.Add(NewBufferCellElement("item", content));
+                bufferCellElement.Add(NewBufferCellElement("item", content, control: this));
             else if (GetNumberOfAvailableContentRows() > 1)
             {
                 string spaces = new String(this.BackgroundCharacter, this.Text.Length);
                 for (int i = 1; i < GetNumberOfAvailableContentRows(); i++)
                     content.Add(spaces);
-                bufferCellElement.Add(NewBufferCellElement("item", content));
+                bufferCellElement.Add(NewBufferCellElement("item", content, control: this));
             }
 
             return bufferCellElement;
@@ -2115,7 +1920,6 @@ namespace PSCLUITools
         {
             void Update()
             {
-                this.Container.Buffer.UpdateAll();
                 this.Container.Buffer.Write();
             }
 
@@ -2157,28 +1961,27 @@ namespace PSCLUITools
                     case KeyFind:
                         if (this.Mode == "List")
                             break;
-                        var searchBox = new TextBox(0, 0, 0);
+                        
+                        Buffer sbBuffer = new Buffer();
+                        if (this.Container.Buffer.Type == "Console")
+                            sbBuffer = new Buffer();
+                        else
+                            sbBuffer = new Buffer(this.Container.Buffer.PSHost);
+                        
+                        Container sbContainer = new Container(sbBuffer);
+
+                        int left = this.Container.GetLeftEdgePosition();
+                        int top = this.Container.GetTopEdgePosition() + (this.Container.GetHeight() / 2);
+                        int width = this.Container.GetWidth();
+
+                        var searchBox = new TextBox(sbContainer, left, top, width);
                         searchBox.AddBorder("all");
                         searchBox.AddPadding("all");
-                        searchBox.SetWidth(this.GetWidth());
 
-                        var x = this.GetLeftEdgePosition();
-                        searchBox.SetHorizontalPosition(x);
-
-                        var y = this.GetHeight() / 2 - searchBox.GetHeight() / 2;
-                        searchBox.SetVerticalPosition(y);
-                        //this.Buffer.Add(searchBox);  // TODO : Maybe make it possible to float the 
-                        // TODO Figure some other way to do this (well, going to have to create a 
-                        // buffer for the searchBox):
-                        //this.Container.Buffer.Add(searchBox);  // TODO : Maybe make it possible to float the 
-                                                                 // control in the same container instead.
-                        Update();
+                        sbBuffer.Write();
                         searchTerm = searchBox.ReadKey();
-                        //this.Buffer.Remove(searchBox);
-                        //this.Buffer.Write();
-                        // TODO Figure some other way to do this:
-                        //this.Container.Buffer.Remove(searchBox);
-                        this.Container.Buffer.Write();
+                        sbContainer.RemoveAllControls();
+
                         // Use a try-catch block to silence mangled regexes
                         try
                         {
@@ -2189,11 +1992,16 @@ namespace PSCLUITools
                             // TODO try basic string matching instead
                             item = null;
                         }
+                        
                         if (item != null)
+                        {
                             this.SetItemActive(this.Objects.IndexOf(item));
-                        if (this.Objects.Count > this.GetNumberOfAvailableRowsForItems() &&
-                            !this.DisplayedObjects.Contains(item))
-                            this.MoveActiveObjectToMiddle();
+                        
+                            if (this.Objects.Count > this.GetNumberOfAvailableRowsForItems() &&
+                                !this.DisplayedObjects.Contains(item))
+                                this.MoveActiveObjectToMiddle();
+                        }
+                        
                         Update();
                         break;
                     case KeyFindNext:
@@ -2610,11 +2418,13 @@ namespace PSCLUITools
                 var item = this.Objects[currentItemIndex];
                 string outTxt = item.ToString();
                 int leftFillCount = 0; // Number of fill characters on left side of text
+                
                 if (this.AlignText == "center" && outTxt.Length < textHorizontalSpace)
                 {
                     leftFillCount = (textHorizontalSpace - outTxt.Length) / 2;
                     outTxt = new String(this.BackgroundCharacter, leftFillCount) + outTxt;
                 }
+
                 outTxt = outTxt.PadRight(textHorizontalSpace, this.BackgroundCharacter);
                 List<string> content = new List<string>();
                 content.Add(outTxt);
