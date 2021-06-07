@@ -78,29 +78,24 @@ namespace PSCLUITools
             return top + height - 1;
         }
 
-        protected void Insert(int column, int row, List<string> text)
+        internal void Insert(int column, int row, List<string> text)
         {
-            if (this.PSHost == null)
+            foreach (string txt in text)
             {
-                foreach (string txt in text)
+                var txtArr = (Char[]) txt.ToCharArray(0,txt.Length);
+                var i = 0;
+
+                foreach (char c in txtArr)
                 {
-                    var txtArr = (Char[]) txt.ToCharArray(0,txt.Length);
-                    var i = 0;
-                    foreach (char c in txtArr)
-                    {
-                        screenBufferArray[column + i, row] = c;
-                        i++;
-                    }
-                    row++;
+                    screenBufferArray[column + i, row] = c;
+                    i++;
                 }
-            }
-            else
-            {
-                throw new NotImplementedException();
+                
+                row++;
             }
         }
 
-        public void Update(Control control)
+        internal void Update(Control control)
         {
             if (this.PSHost == null)
             {
@@ -141,7 +136,7 @@ namespace PSCLUITools
             }
         }
 
-        public void UpdateAll()
+        internal void UpdateAll()
         {
             foreach (Control control in this.containers)
                 this.Update(control);
@@ -151,6 +146,14 @@ namespace PSCLUITools
         {
             container.Buffer = this;
             this.containers.Add(container);
+        }
+
+        internal void RemoveContainer(Container container)
+        {
+            if (container.Buffer != null)
+                container.Buffer = null;
+
+            this.containers.Remove(container);
         }
 
         internal void RemoveControl(Control control)
@@ -219,7 +222,16 @@ namespace PSCLUITools
             }
         }
 
-        public BufferCellElement GetBufferCellElement(Object searchObject)
+        public void Close()
+        {
+            while (this.containers.Count > 0)
+            {
+                this.containers[0].Close();
+                this.RemoveContainer(this.containers[0]);
+            }
+        }
+
+        internal BufferCellElement GetBufferCellElement(Object searchObject)
         {
             foreach (BufferCellElement bce in bufferCellElements)
             {
@@ -279,7 +291,7 @@ namespace PSCLUITools
     abstract class Control : PSCmdlet
     {
         // TODO Change accessibility (public, protected, etc) to whatever it ought to be
-        public Coordinates Position { get; set; } = new Coordinates(0, 0);
+        internal Coordinates Position { get; set; } = new Coordinates(0, 0);
         internal int width = 0;
         internal int height = 0;
         internal bool BorderTop { get; set; } = false;
@@ -479,7 +491,6 @@ namespace PSCLUITools
                     {
                         this.SetHeight(this.GetHeight() + 1);
                         this.BorderTop = true;
-                        // TODO Should also maybe move position up 1 row?
                     }
                     break;
                 case "right":
@@ -501,7 +512,6 @@ namespace PSCLUITools
                     {
                         this.SetWidth(this.GetWidth() + 1);
                         this.BorderLeft = true;
-                        // TODO Should also maybe move position left 1 column?
                     }
                     break;
                 case "all":
@@ -522,7 +532,6 @@ namespace PSCLUITools
                     {
                         this.SetHeight(this.GetHeight() - 1);
                         this.BorderTop = false;
-                        // TODO Should also maybe move position down 1 row?
                     }
                     break;
                 case "right":
@@ -544,7 +553,6 @@ namespace PSCLUITools
                     {
                         this.SetWidth(this.GetWidth() - 1);
                         this.BorderLeft = false;
-                        // TODO Should also maybe move position right 1 column?
                     }
                     break;
                 case "all":
@@ -724,7 +732,7 @@ namespace PSCLUITools
             return new Coordinates(left, top);
         }
 
-        internal int GetBorderHeight()
+        internal int GetVerticalBorderHeight()
         {
             var height = this.GetHeight();
             if (this.BorderTop)
@@ -752,7 +760,7 @@ namespace PSCLUITools
             return new Coordinates(left, top);
         }
 
-        internal int GetPaddingWidth()
+        internal int GetHorizontalPaddingWidth()
         {
             var width = this.GetWidth();
             if (this.BorderLeft)
@@ -786,7 +794,7 @@ namespace PSCLUITools
             return new Coordinates(left, top);
         }
         
-        internal int GetPaddingHeight()
+        internal int GetVerticalPaddingHeight()
         {
             var height = this.GetHeight();
             if (this.BorderTop)
@@ -938,7 +946,7 @@ namespace PSCLUITools
             }
             else if (element == "borderLeft")
             {
-                height = this.GetBorderHeight();
+                height = this.GetVerticalBorderHeight();
                 Coordinates coords = this.GetLeftBorderCoordinates();
                 positionTop = coords.Y;
                 positionBottom = positionTop + height;
@@ -950,7 +958,7 @@ namespace PSCLUITools
             }
             else if (element == "borderRight")
             {
-                height = this.GetBorderHeight();
+                height = this.GetVerticalBorderHeight();
                 Coordinates coords = this.GetRightBorderCoordinates();
                 positionTop = coords.Y;
                 positionBottom = positionTop + height;
@@ -960,7 +968,7 @@ namespace PSCLUITools
             }
             else if (element == "paddingTop")
             {
-                width = this.GetPaddingWidth();
+                width = this.GetHorizontalPaddingWidth();
                 Coordinates coords = this.GetTopPaddingCoordinates();
                 positionTop = coords.Y;
                 positionBottom = positionTop + 1;
@@ -972,7 +980,7 @@ namespace PSCLUITools
             }
             else if (element == "paddingBottom")
             {
-                width = this.GetPaddingWidth();
+                width = this.GetHorizontalPaddingWidth();
                 Coordinates coords = this.GetBottomPaddingCoordinates();
                 positionTop = coords.Y;
                 positionBottom = positionTop + 1;
@@ -984,7 +992,7 @@ namespace PSCLUITools
             }
             else if (element == "paddingLeft")
             {
-                height = this.GetPaddingHeight();
+                height = this.GetVerticalPaddingHeight();
                 Coordinates coords = this.GetLeftPaddingCoordinates();
                 positionTop = coords.Y;
                 positionBottom = positionTop + height + 1; // TODO The + 1 doesn't seem to make sense but was required
@@ -998,7 +1006,7 @@ namespace PSCLUITools
             }
             else if (element == "paddingRight")
             {
-                height = this.GetPaddingHeight();
+                height = this.GetVerticalPaddingHeight();
                 Coordinates coords = this.GetRightPaddingCoordinates();
                 positionTop = coords.Y;
                 positionBottom = positionTop + height + 1; // TODO The + 1 doesn't seem to make sense but was required
@@ -1947,14 +1955,18 @@ namespace PSCLUITools
                     case KeyPageUp:
                         // TODO There's more of a flash effect on PSHost than there probably 
                         // needs to as in it's likely restoring the saved buffer area before 
-                        // writing the new content when it doesn't need to restore
+                        // writing the new content when it doesn't need to restore. If I can 
+                        // not be arsed to do something like just update the items I should 
+                        // at least update the content without restoring it first.
                         this.LoadPreviousPage();
                         Update();
                         break;
                     case KeyPageDown:
                         // TODO There's more of a flash effect on PSHost than there probably 
                         // needs to as in it's likely restoring the saved buffer area before 
-                        // writing the new content when it doesn't need to restore
+                        // writing the new content when it doesn't need to restore. If I can 
+                        // not be arsed to do something like just update the items I should 
+                        // at least update the content without restoring it first.
                         this.LoadNextPage();
                         Update();
                         break;
@@ -2203,6 +2215,8 @@ namespace PSCLUITools
             if (this.TopDisplayedObjectIndex == this.Objects.Count)
                 this.TopDisplayedObjectIndex = 0;
 
+            // TODO Instead of calling Clear causing an unfortunate flash, mark cells as updated 
+            // so they'll be rewritten when .Container.Buffer.Write() is called after this method.
             this.Container.Buffer.Clear();
 
             if (this.Mode != "List")
@@ -2232,6 +2246,8 @@ namespace PSCLUITools
 
             this.BottomDisplayedObjectIndex = newBottomDisplayedObjectIndex;
 
+            // TODO Instead of calling Clear causing an unfortunate flash, mark cells as updated 
+            // so they'll be rewritten when .Container.Buffer.Write() is called after this method.
             this.Container.Buffer.Clear();
 
             if (this.Mode != "List")

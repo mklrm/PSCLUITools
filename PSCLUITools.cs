@@ -139,8 +139,8 @@ namespace PSCLUITools
 
             List<Object> NewMenu()
             {
-                //var buffer = new Buffer();
-                var buffer = new Buffer(Host);
+                //var buffer = new Buffer();   // TODO Combine...
+                var buffer = new Buffer(Host); // ...these
                 var container = new Container(buffer);
 
                 if (Title.Count > 0)
@@ -176,7 +176,7 @@ namespace PSCLUITools
                 buffer.Write();
                 
                 List<Object> objects = menu.ReadKey();
-                container.RemoveAllControls();
+                buffer.Close();
                 return objects;
             }
 
